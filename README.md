@@ -11,4 +11,18 @@ This is my humble opinionated approach to connect different microservices writte
 But you can have a look at the [tests folder](https://github.com/mosaiqo/feathers-microservices/tree/main/test) 
 if you want to start using it before the documentation is ready.
 
+------------------------------
+
+How to start: 
+```bash
+
+git clone git@github.com:mosaiqo/feathers-microservices.git
+cd feathers-microservices
+yarn test 
+
+# or 
+
+yarn test --verbose --collect-coverage --coverageDirectory='coverage' --watchAll
+
+```
 
