@@ -1,7 +1,7 @@
 import { describe, expect, jest, test } from '@jest/globals'
 import * as errors from '@feathersjs/errors'
-import { HttpRequester } from '../../lib/requesters/http'
-import { RemoteService } from '../../lib/service/remote'
+import { HttpRequester } from '../../../lib/requesters/http'
+import { RemoteService } from '../../../lib/service/remote'
 
 describe('RemoteService', () => {
 	beforeEach(() => {

@@ -15,15 +15,12 @@ import { AmqpClient } from './clients'
 import { AppsConsumer } from './consumers'
 export class MicroService {
 	app
-	superService
-	
 	options: InterfaceMicroServicesOptions
-	
 	consumer
-	
 	channel
 	client
 	key: string
+	name: string
 	queue: string
 	id: string
 	consumers: ConsumerMap = {}
@@ -38,8 +35,9 @@ export class MicroService {
 	 */
 	constructor (app, options?: InterfaceMicroServicesOptions ) {
 		this.id = options?.id || v4()
-		this.key = options?.key || v4()
-		this.queue = options?.queue || `${this.key}-service`
+		this.key = options?.key || options?.host || v4()
+		this.name = `${this.key}-${this.id}`
+		this.queue = this.createUniqueQueue(this.id, this.key, options)
 		this.debug = options?.debug
 		
 		if (options?.type === MicroServiceType.HTTP && !options?.host) {
@@ -96,12 +94,10 @@ export class MicroService {
 	}
 	
 	async createClient () {
-		const client = await (
-			new AmqpClient(this.options.url, { exchanges: this.options.exchanges })
-		).connect()
+		const { channel, connection } = await AmqpClient.connect(this.options.url, { exchanges: this.options.exchanges, name: this.name })
 		
-		this.client = client
-		this.channel = client
+		this.client = channel
+		this.channel = channel
 	}
 	
 	async createConsumers () {
@@ -129,7 +125,6 @@ export class MicroService {
 	}
 
 	async subscribeToNewApps() {
-		const key = this.key
 		await this.consumers.app.onHello(async (event: HelloEvent) => {
 			// this.app.microservices[event.uuid] = event.data
 			this.registrars.app.register(event)
@@ -153,7 +148,6 @@ export class MicroService {
 			}
 
 			const microserviceConfig = this.app.microservices[serviceConfig.key]
-
 			// In case the config is not there we return early
 			// if (!microserviceConfig) return
 			
@@ -194,17 +188,6 @@ export class MicroService {
 			host: this.options.host
 		}, this.channel)
 		await replier.init()
-		
-		// this.channel.consume(queue, async (msg) => {
-		// 	const event = JSON.parse(`${Buffer.from(msg.content)}`)
-		// 	const response = await replier(event)
-		// 	this.channel.sendToQueue(
-		// 		msg.properties.replyTo,
-		// 		Buffer.from(JSON.stringify(response)),
-		// 		{ correlationId: msg.properties.correlationId }
-		// 	)
-		// 	this.channel.ack(msg)
-		// })
 	}
 	
 	/**
@@ -262,6 +245,13 @@ export class MicroService {
 	async publishApp() {
 		const event = HelloEvent.create(this.id, this.key, this.options.host, this.options.type)
 		await this.publishers.app.emitGreet(event)
+	}
+	
+	private createUniqueQueue (id: string, key: string, options: InterfaceMicroServicesOptions) {
+		let queue = options?.queue || `${this.key}-service`
+		const uuid = v4()
+		
+		return `${queue}-${uuid}`
 	}
 }
 

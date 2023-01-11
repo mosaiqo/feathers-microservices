@@ -1,26 +1,28 @@
+import { feathers } from '@feathersjs/feathers'
 import { describe, expect, jest, test } from '@jest/globals'
-import { fakeRpcResponder } from '../configs'
-import { AmqpClient } from '../../lib/clients'
-import { RpcRequester } from '../../lib/requesters/rpc'
+import memory from 'feathers-memory'
+import { fakeRpcResponder, amqpUrl } from '../../configs'
+import { AmqpClient } from '../../../lib/clients'
+import { RpcRequester } from '../../../lib/requesters/rpc'
 import * as amqplib from 'amqplib'
 import mockAmqplib from 'mock-amqplib'
 
 jest.setTimeout(8000)
-
-jest.mock('amqplib')
 jest.mock('amqplib', () => ({
 	connect: () => mockAmqplib.connect()
 }))
 
 describe.only('RpcRequester', () => {
+	let channel
+	beforeEach(async () => {
+		jest.clearAllMocks()
+		const client = await AmqpClient.connect(amqpUrl)
+		channel = client.channel
+	})
+	
 	test('sets correct options',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
 		const requester = new RpcRequester({ host: 'host-remote' }, channel)
 		await requester.init()
-		
-		// @ts-ignore
-		// await requester.send({ type: 'find', path: 'remote-service', params: {} })
 		
 		// @ts-ignore
 		expect(requester instanceof RpcRequester).toBeTruthy()
@@ -28,8 +30,6 @@ describe.only('RpcRequester', () => {
 	})
 	
 	test('converts properly an object id to string',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
 		const {check} = await fakeRpcResponder('host-remote', { foo: 'bar' }, channel)
 		const requester = new RpcRequester({ host: 'host-remote' }, channel)
 		await requester.init()
@@ -45,8 +45,6 @@ describe.only('RpcRequester', () => {
 	})
 	
 	test('filters out correct params based on excludedParams',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
 		const requester = new RpcRequester({ host: 'host-remote', excludeParams: ['bar'] }, channel)
 		await requester.init()
 		
@@ -63,8 +61,6 @@ describe.only('RpcRequester', () => {
 	})
 	
 	test('makes correct find request',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
 		const { check } = await fakeRpcResponder('host-remote', { foo: 'bar' }, channel)
 		const requester = new RpcRequester({ host: 'host-remote' }, channel)
 		await requester.init()
@@ -79,8 +75,6 @@ describe.only('RpcRequester', () => {
 	})
 	
 	test('makes correct get request',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
 		const { check } = await fakeRpcResponder('host-remote', { foo: 'bar' }, channel)
 		const requester = new RpcRequester({ host: 'host-remote' }, channel)
 		await requester.init()
@@ -98,8 +92,6 @@ describe.only('RpcRequester', () => {
 	})
 	
 	test('makes correct update request',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
 		const { check } = await fakeRpcResponder('host-remote', { foo: 'bar' }, channel)
 		const requester = new RpcRequester({ host: 'host-remote' }, channel)
 		await requester.init()
@@ -118,8 +110,6 @@ describe.only('RpcRequester', () => {
 	})
 	
 	test('makes correct patch request',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
 		const { check } = await fakeRpcResponder('host-remote', { foo: 'bar' }, channel)
 		const requester = new RpcRequester({ host: 'host-remote' }, channel)
 		await requester.init()
@@ -138,8 +128,6 @@ describe.only('RpcRequester', () => {
 	})
 	
 	test('makes correct remove request',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
 		const { check } = await fakeRpcResponder('host-remote', { foo: 'bar' }, channel)
 		const requester = new RpcRequester({ host: 'host-remote' }, channel)
 		await requester.init()
@@ -157,8 +145,6 @@ describe.only('RpcRequester', () => {
 	})
 	
 	test('fails for timeout after 5s',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
 		// const { check } = await fakeRpcResponder('host-remote', { foo: 'bar' }, channel)
 		const requester = new RpcRequester({ host: 'failed-remote' }, channel)
 		await requester.init()

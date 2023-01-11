@@ -3,8 +3,8 @@ import { feathers } from '@feathersjs/feathers'
 import { describe, expect, jest, test } from '@jest/globals'
 import * as amqplib from 'amqplib'
 import mockAmqplib from 'mock-amqplib'
-import microservices from '../lib'
-import { amqpUrl } from './configs'
+import microservices from '../../lib'
+import { amqpUrl } from '../configs'
 
 jest.mock('amqplib')
 jest.mock('amqplib', () => ({

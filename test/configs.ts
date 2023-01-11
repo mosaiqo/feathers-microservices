@@ -1,13 +1,15 @@
 /* istanbul ignore file */
-import { describe, expect, jest, test } from '@jest/globals'
+import { expect, jest } from '@jest/globals'
 import * as amqplib from 'amqplib'
+import { v4 } from 'uuid'
+
 export const mockIt = false
 let testUrl = 'amqp://localhost:5672'
 let devUrl = 'amqp://development:secret12345678@localhost:5672'
 
 export const amqpUrl = mockIt ? testUrl : devUrl
-let connection, channel
-
+let connection, channel, client
+export const amqpClient = client
 export const fakeRpcRequester = async (queue, data, channel, timesOut = false) => {
 	let event = null
 	queue = `${queue}-service`
@@ -51,7 +53,9 @@ export const fakeRpcResponder = async (queue, data, channel, timesOut = false) =
 		},
 	}
 }
+let consumerTagCounter = 0
 export const fakeConnection = async (config = {}) => {
+	consumerTagCounter++
 	let events = []
 	const defaultQueue = 'microservices-test-queue'
 	let { exchanges , queue } = {
@@ -62,8 +66,11 @@ export const fakeConnection = async (config = {}) => {
 		queue: defaultQueue,
 		...config
 	}
+	const uuid = v4()
+	const consumerTag = `${queue}-${consumerTagCounter}-${uuid}`
+	
 	if (!connection) {
-		connection = await amqplib.connect(amqpUrl)
+		connection = await amqplib.connect(amqpUrl, {clientProperties: { connection_name: 'fakeConnection'}})
 	}
 	
 	if (!channel) {
@@ -73,37 +80,59 @@ export const fakeConnection = async (config = {}) => {
 	await channel.assertExchange(exchanges.services, 'fanout', { durable: false })
 	await channel.assertExchange(exchanges.events, 'fanout', { durable: false })
 	
-	await channel.assertQueue(queue)
+	await channel.assertQueue(consumerTag, { exclusive: true })
+	await channel.purgeQueue(consumerTag)
 	// console.log('Binding queue fake-queue to exchange fake-services')
-	await channel.bindQueue(queue, exchanges.services, '')
+	await channel.bindQueue(consumerTag, exchanges.services, '')
 	
-	await channel.consume(queue, (data) => {
+	await channel.consume(consumerTag, async (data) => {
+		await new Promise((r) => setTimeout(r, 500))
 		const eventData = JSON.parse(`${Buffer.from(data.content)}`)
 		// Comment out for log purposes
-		// console.log('=================== FakeConnection ====================== \n',eventData, '\n','=================== End ======================')
-		// console.log('Event received', eventData)
+		// console.log('Event received', data, eventData)
 		events.push(eventData)
 		channel.ack(data)
-	}, {consumerTag: queue})
+	}, {consumerTag})
 	const purge = async () => {
 		events = []
-		await channel.purgeQueue(queue)
-		// channel.cancel(queue)
-		// channel.close()
+		await channel.purgeQueue(consumerTag)
+		channel.cancel(consumerTag)
 	}
 	
 	return {
-		events: events,
-		channel,
-		check: async function (cb, id = null) {
-			await new Promise((r) => setTimeout(r, 2000))
-			await cb(id ? events.filter(e => e.id === id) : events)
+		close: async function () {
+			await new Promise((r) => setTimeout(r, 1000))
+			connection.close()
+		},
+		check: async function (cb, timeout = 4000) {
+			await new Promise((r) => setTimeout(r, timeout))
+			await cb(events)
 			await purge()
 		},
 		purge
 	}
 }
 
+export const closeConnections = async (connections) => {
+	const { close } = await fakeConnection()
+	close()
+	
+	for (const client of connections) {
+		try {
+			if (client){
+				await client.close()
+			}
+		} catch (e) {
+			console.log(e)
+		}
+	}
+	connections = []
+}
+
+
+// jest.mock('amqplib', () => ({
+// 	connect: () => mockAmqplib.connect()
+// }))
 
 beforeEach(() => {
 	jest.clearAllMocks()

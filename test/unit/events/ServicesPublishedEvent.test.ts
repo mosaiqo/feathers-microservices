@@ -1,5 +1,5 @@
 import { describe, expect, jest, test } from '@jest/globals'
-import { ServicesPublishedEvent } from '../../lib/events'
+import { ServicesPublishedEvent } from '../../../lib/events'
 
 describe('ServicesPublishedEvent', () => {
 	const service = {

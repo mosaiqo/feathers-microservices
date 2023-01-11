@@ -1,52 +1,59 @@
 import * as errors from '@feathersjs/errors'
 import { feathers } from '@feathersjs/feathers'
 import { channel } from 'diagnostics_channel'
-import { AmqpClient } from '../lib/clients'
-import { MicroServiceType } from '../lib/constants'
+import { DEFAULT_EXCHANGE_EVENTS, DEFAULT_EXCHANGE_SERVICES, MicroServiceType } from '../../lib/constants'
 import { describe, expect, jest, test } from '@jest/globals'
 import * as assert from 'assert'
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter'
 import memory from 'feathers-memory'
+import microservices from '../../lib'
+import {v4} from 'uuid'
+import { amqpUrl, fakeConnection, closeConnections } from '../configs'
 import * as amqplib from 'amqplib'
 import mockAmqplib from 'mock-amqplib'
-import microservices from '../lib'
-import {v4} from 'uuid'
-import { amqpUrl, fakeConnection, fakeRpcResponder } from './configs'
+
+import { AmqpFakeClient } from '../_mocks/AmqpFakeClient'
+
+let clients = []
 
 jest.setTimeout(6000)
-
-jest.mock('amqplib')
 jest.mock('amqplib', () => ({
 	connect: () => mockAmqplib.connect()
 }))
+jest.mock('../../lib/clients/amqp', () => ({
+	connect: async (url, options = {}) => {
+		let { channel, connection } = await AmqpFakeClient.connect(url, options)
+		clients.push(connection)
+		
+		return { channel, connection }
+	}
+}))
 
 describe('Integration test', () => {
+	afterAll(async () => {
+		await closeConnections(clients)
+	})
+	
 	describe('Initialization', () => {
 		test('is CommonJS compatible', () => {
-			assert.strictEqual(typeof require('../lib'), 'function')
+			assert.strictEqual(typeof require('../../lib'), 'function')
 		})
 		test('without options', async () => {
 			const id = v4()
 			// given
-			const app = feathers().configure(microservices({
-				id,
-				url: amqpUrl
-			}))
+			const app = feathers().configure(microservices({ id, url: amqpUrl }))
 			// then
 			expect(app).toBeTruthy()
-			// @ts-ignore
 			expect(app.microservice).toBeTruthy()
-			// @ts-ignore
 			expect(app.microservices).toBeTruthy()
 			// Test proper events
 			const { check } = await fakeConnection()
 			await check(async (events) => {
-				expect(events[0].name).toBe('HelloEvent')
 				expect(events.length).toBe(1)
+				expect(events[0].name).toBe('HelloEvent')
 			})
 		})
-		
 		test('with options', async () => {
 			// given
 			const app = feathers()
@@ -58,10 +65,8 @@ describe('Integration test', () => {
 
 			// then
 			expect(app).toBeTruthy()
-
-			// @ts-ignore
+			
 			expect(app.microservice).toBeTruthy()
-			// @ts-ignore
 			expect(app.microservices).toBeTruthy()
 
 			// Test proper events
@@ -132,19 +137,25 @@ describe('Integration test', () => {
 			const { check } = await fakeConnection()
 			await check(async (events) => {
 				expect(events.length).toBe(3)
-				let currentEvent = events[0]
+				const localEvents = events.filter(e => e.key === 'app-local')
+				const remoteEvents = events.filter(e => e.key === 'app-remote')
+				
+				expect(localEvents.length).toBe(1)
+				expect(remoteEvents.length).toBe(2)
+				
+				let currentEvent = remoteEvents[0]
 				expect(currentEvent.name).toBe('HelloEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
 				
-				currentEvent = events[2]
+				currentEvent = remoteEvents[1]
 				expect(currentEvent.name).toBe('ServicesPublishedEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
 				expect(Array.isArray(currentEvent.data.services)).toBeTruthy()
 				expect(currentEvent.data.services .length).toBe(1)
 				
-				currentEvent = events[1]
+				currentEvent = localEvents[0]
 				expect(currentEvent.name).toBe('HelloEvent')
 				expect(currentEvent.key).toBe('app-local')
 				expect(currentEvent.data.host).toBe('host-local')
@@ -175,6 +186,7 @@ describe('Integration test', () => {
 
 			const localApp = feathers()
 				.configure(microservices({
+					url: amqpUrl,
 					register: true,
 					key: 'app-local',
 					host: 'host-local',
@@ -190,23 +202,29 @@ describe('Integration test', () => {
 			const { check } = await fakeConnection()
 			await check(async (events) => {
 				expect(events.length).toBe(3)
-				let currentEvent = events[0]
+				const localEvents = events.filter(e => e.key === 'app-local')
+				const remoteEvents = events.filter(e => e.key === 'app-remote')
+				
+				expect(localEvents.length).toBe(1)
+				expect(remoteEvents.length).toBe(2)
+				
+				let currentEvent = remoteEvents[0]
 				expect(currentEvent.name).toBe('HelloEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
-
-				currentEvent = events[1]
-				expect(currentEvent.name).toBe('HelloEvent')
-				expect(currentEvent.key).toBe('app-local')
-				expect(currentEvent.data.host).toBe('host-local')
-
-				currentEvent = events[2]
+				currentEvent = remoteEvents[1]
 				expect(currentEvent.name).toBe('ServicesPublishedEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
 				expect(Array.isArray(currentEvent.data.services)).toBeTruthy()
 				expect(currentEvent.data.services .length).toBe(1)
 				
+				currentEvent = localEvents[0]
+				expect(currentEvent.name).toBe('HelloEvent')
+				expect(currentEvent.key).toBe('app-local')
+				expect(currentEvent.data.host).toBe('host-local')
+
+			
 				const microservice = remoteApp.microservices['app-local']
 
 				expect(microservice).toBeTruthy()
@@ -221,6 +239,7 @@ describe('Integration test', () => {
 			// given
 			const localApp = feathers()
 				.configure(microservices({
+					url: amqpUrl,
 					register: true,
 					key: 'app-local',
 					host: 'host-local',
@@ -245,24 +264,29 @@ describe('Integration test', () => {
 			const { check } = await fakeConnection()
 			await check(async (events) => {
 				expect(events.length).toBe(3)
-				let currentEvent = events[0]
+				const localEvents = events.filter(e => e.key === 'app-local')
+				const remoteEvents = events.filter(e => e.key === 'app-remote')
+				
+				expect(localEvents.length).toBe(1)
+				expect(remoteEvents.length).toBe(2)
+				
+				let currentEvent = remoteEvents[0]
 				expect(currentEvent.name).toBe('HelloEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
-
-				currentEvent = events[1]
-				expect(currentEvent.name).toBe('HelloEvent')
-				expect(currentEvent.key).toBe('app-local')
-				expect(currentEvent.data.host).toBe('host-local')
-
-				currentEvent = events[2]
+				
+				currentEvent = remoteEvents[1]
 				expect(currentEvent.name).toBe('ServicesPublishedEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
 				expect(Array.isArray(currentEvent.data.services)).toBeTruthy()
 				expect(currentEvent.data.services .length).toBe(1)
-
-				// @ts-ignore
+				
+				currentEvent = localEvents[0]
+				expect(currentEvent.name).toBe('HelloEvent')
+				expect(currentEvent.key).toBe('app-local')
+				expect(currentEvent.data.host).toBe('host-local')
+				
 				const microservice = localApp.microservices['app-remote']
 
 				expect(microservice).toBeTruthy()
@@ -304,7 +328,6 @@ describe('Integration test', () => {
 			const { check } = await fakeConnection()
 			await check(async (events) => {
 				expect(events.length).toBe(5)
-				// @ts-ignore
 				const remoteService = localApp.microservice('service-one::remote-service')
 				expect(remoteService).toBeTruthy()
 			})
@@ -322,7 +345,6 @@ describe('Integration test', () => {
 			const service = app.service('/')
 			
 			expect(service).toBeTruthy()
-			// @ts-ignore
 			expect(service.remote).toBeUndefined()
 			const { check } = await fakeConnection()
 			await check(async (events) => {
@@ -340,7 +362,6 @@ describe('Integration test', () => {
 			const service = app.service('local-service')
 
 			expect(service).toBeTruthy()
-			// @ts-ignore
 			expect(service.remote).toBeUndefined()
 			const { check } = await fakeConnection()
 			await check(async (events) => {
@@ -359,7 +380,6 @@ describe('Integration test', () => {
 			const service = app.service('local-service')
 
 			expect(service).toBeTruthy()
-			// @ts-ignore
 			expect(service.remote).toBeUndefined()
 
 			// Test proper events
@@ -392,6 +412,7 @@ describe('Integration test', () => {
 			
 			const localApp = feathers()
 				.configure(microservices({
+					url: amqpUrl,
 					register: true,
 					key: 'app-local',
 					host: 'host-local',
@@ -406,23 +427,26 @@ describe('Integration test', () => {
 			const { check } = await fakeConnection()
 			await check(async (events) => {
 				expect(events.length).toBe(3)
-				let currentEvent = events[0]
+				const remoteEvents = events.filter(e => e.key === 'app-remote')
+				expect(remoteEvents.length).toBe(2)
+				let currentEvent = remoteEvents[0]
 				expect(currentEvent.name).toBe('HelloEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
-
-				currentEvent = events[1]
-				expect(currentEvent.name).toBe('HelloEvent')
-				expect(currentEvent.key).toBe('app-local')
-				expect(currentEvent.data.host).toBe('host-local')
-
-				currentEvent = events[2]
+				currentEvent = remoteEvents[1]
 				expect(currentEvent.name).toBe('ServicesPublishedEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
 				expect(Array.isArray(currentEvent.data.services)).toBeTruthy()
 				expect(currentEvent.data.services .length).toBe(1)
-				// @ts-ignore
+				
+				const localEvents = events.filter(e => e.key === 'app-local')
+				expect(localEvents.length).toBe(1)
+				currentEvent = localEvents[0]
+				expect(currentEvent.name).toBe('HelloEvent')
+				expect(currentEvent.key).toBe('app-local')
+				expect(currentEvent.data.host).toBe('host-local')
+				
 				const remoteService = localApp.microservice('service-one::remote-service')
 
 				expect(localService).toBeTruthy()
@@ -430,12 +454,13 @@ describe('Integration test', () => {
 			})
 		})
 	})
+	
 	describe('Call remote service with http client', () => {
-		let app
 		let remoteApp, localApp, mock
-
 		beforeAll(async () => {
 			mock = new MockAdapter(axios)
+		})
+		beforeEach(async () => {
 			remoteApp = feathers()
 				.configure(microservices({
 					url: amqpUrl,
@@ -446,7 +471,7 @@ describe('Integration test', () => {
 					type: MicroServiceType.HTTP,
 				}))
 			remoteApp.use('/remote-service', memory({}))
-
+			
 			localApp = feathers()
 				.configure(microservices({
 					url: amqpUrl,
@@ -456,21 +481,16 @@ describe('Integration test', () => {
 					service: 'service-two',
 					type: MicroServiceType.HTTP,
 				}))
-
+			
 			localApp.use('/local-service', memory({}))
 			const localService = localApp.service('local-service')
 			expect(localService).toBeTruthy()
-
-			await new Promise((r) => setTimeout(r, 1000))
-			// @ts-ignore
+			await new Promise((r) => setTimeout(r, 3000))
+			
 			const remoteService = localApp.microservice('service-one::remote-service')
 			expect(remoteService).toBeTruthy()
 			expect(Object.keys(localApp.microservices).length).toBe(1)
-		})
-
-		beforeEach(async () => {
-			app = feathers()
-				.configure(microservices())
+			
 		})
 		afterEach(() => {
 			mock.reset()
@@ -478,6 +498,11 @@ describe('Integration test', () => {
 
 		test('does not allow to use service method for remote services', async () => {
 			try {
+				const { check } = await fakeConnection()
+				
+				await check((events) => {
+					expect(events.length).toBe(0)
+				})
 				const service = localApp.service('service-one::remote-service')
 			} catch (e) {
 				expect(e).toBeDefined()
@@ -487,18 +512,14 @@ describe('Integration test', () => {
 
 		test('allows to use service method for local services', async () => {
 			const service = localApp.service('local-service')
-			// @ts-ignore
 			expect(service.remote).toBeUndefined()
-			// @ts-ignore
 			expect(service).toBeDefined()
 		})
 
 		test('allows to use microservice method for remote services', async () => {
 			const { check } = await fakeConnection()
 			const service = localApp.microservice('service-one::remote-service')
-			// @ts-ignore
 			expect(service.remote).toBeDefined()
-			// @ts-ignore
 			expect(service).toBeDefined()
 		})
 
@@ -517,14 +538,15 @@ describe('Integration test', () => {
 				.reply(200, data)
 
 			const { check } = await fakeConnection()
-			// @ts-ignore
 			const service = localApp.microservice('service-one::remote-service')
 			const response = await service.find({})
-
-			// then
-			expect(response).toBeDefined()
-			expect(mock.history.get[0].url).toEqual('http://host-remote/remote-service')
-			expect(response).toEqual(data)
+			
+			await check(async (events) => {
+				// then
+				expect(response).toBeDefined()
+				expect(mock.history.get[0].url).toEqual('http://host-remote/remote-service')
+				expect(response).toEqual(data)
+			})
 		})
 
 		test('find method on remote service fails', async () => {
@@ -532,8 +554,7 @@ describe('Integration test', () => {
 			// given
 			mock.onGet('http://host-remote/remote-service')
 				.reply(404)
-
-			// @ts-ignore
+			
 			service = localApp.microservice('service-one::remote-service')
 			await service.find({}).catch((error) => {
 				expect(error).toBeDefined()
@@ -542,7 +563,6 @@ describe('Integration test', () => {
 
 			mock.onGet('http://host-remote/remote-service')
 				.networkError()
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.find({}).catch((error) => {
 				expect(error).toBeDefined()
@@ -551,7 +571,6 @@ describe('Integration test', () => {
 
 			mock.onGet('http://host-remote/remote-service')
 				.timeout()
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.find({}).catch((error) => {
 				expect(error).toBeDefined()
@@ -565,7 +584,6 @@ describe('Integration test', () => {
 						new errors.GeneralError()
 					];
 				})
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.find({}).catch((error) => {
 				expect(error).toBeDefined()
@@ -578,8 +596,7 @@ describe('Integration test', () => {
 			const data = { _id: '1234567890', name: 'One' }
 			mock.onGet('http://host-remote/remote-service/1234567890')
 				.reply(200, data)
-
-			// @ts-ignore
+			
 			const service = localApp.microservice('service-one::remote-service')
 			const response = await service.get('1234567890', {})
 			// then
@@ -593,8 +610,7 @@ describe('Integration test', () => {
 			// given
 			mock.onGet('http://host-remote/remote-service/1234567')
 				.reply(404)
-
-			// @ts-ignore
+			
 			service = localApp.microservice('service-one::remote-service')
 			await service.get('1234567').catch((error) => {
 				expect(error).toBeDefined()
@@ -603,7 +619,6 @@ describe('Integration test', () => {
 
 			mock.onGet('http://host-remote/remote-service/1234567')
 				.networkError()
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 				await service.get('1234567').catch((error) => {
 				expect(error).toBeDefined()
@@ -612,7 +627,6 @@ describe('Integration test', () => {
 
 			mock.onGet('http://host-remote/remote-service/1234567')
 				.timeout()
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 				await service.get('1234567').catch((error) => {
 				expect(error).toBeDefined()
@@ -626,7 +640,6 @@ describe('Integration test', () => {
 						new errors.GeneralError()
 					];
 				})
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 				await service.get('1234567').catch((error) => {
 				expect(error).toBeDefined()
@@ -639,8 +652,7 @@ describe('Integration test', () => {
 			const data = { _id: '1234567890', name: 'One' }
 			mock.onPost('http://host-remote/remote-service')
 				.reply(201, data)
-
-			// @ts-ignore
+			
 			const service = localApp.microservice('service-one::remote-service')
 			const response = await service.create({ name: 'One' })
 			// then
@@ -655,8 +667,7 @@ describe('Integration test', () => {
 			// given
 			mock.onPost('http://host-remote/remote-service')
 				.reply(404)
-
-			// @ts-ignore
+			
 			service = localApp.microservice('service-one::remote-service')
 			await service.create({}).catch((error) => {
 				expect(error).toBeDefined()
@@ -665,7 +676,6 @@ describe('Integration test', () => {
 
 			mock.onPost('http://host-remote/remote-service')
 				.networkError()
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.create({}).catch((error) => {
 				expect(error).toBeDefined()
@@ -674,7 +684,6 @@ describe('Integration test', () => {
 
 			mock.onPost('http://host-remote/remote-service')
 				.timeout()
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.create({}).catch((error) => {
 				expect(error).toBeDefined()
@@ -688,7 +697,6 @@ describe('Integration test', () => {
 						new errors.GeneralError()
 					];
 				})
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.create({}).catch((error) => {
 				expect(error).toBeDefined()
@@ -704,8 +712,7 @@ describe('Integration test', () => {
 
 			mock.onPatch('http://host-remote/remote-service/1234567890')
 				.reply(200, data)
-
-			// @ts-ignore
+			
 			const service = localApp.microservice('service-one::remote-service')
 			await service.get('1234567890')
 			const response = await service.patch('1234567890', { name: 'Changed' })
@@ -722,8 +729,7 @@ describe('Integration test', () => {
 			// given
 			mock.onPatch('http://host-remote/remote-service/1234567')
 				.reply(404)
-
-			// @ts-ignore
+			
 			service = localApp.microservice('service-one::remote-service')
 			await service.patch('1234567', {}).catch((error) => {
 				expect(error).toBeDefined()
@@ -732,7 +738,6 @@ describe('Integration test', () => {
 
 			mock.onPatch('http://host-remote/remote-service/1234567')
 				.networkError()
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.patch('1234567', {}).catch((error) => {
 				expect(error).toBeDefined()
@@ -741,7 +746,6 @@ describe('Integration test', () => {
 
 			mock.onPatch('http://host-remote/remote-service/1234567')
 				.timeout()
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.patch('1234567', {}).catch((error) => {
 				expect(error).toBeDefined()
@@ -755,7 +759,6 @@ describe('Integration test', () => {
 						new errors.GeneralError()
 					];
 				})
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.patch('1234567', {}).catch((error) => {
 				expect(error).toBeDefined()
@@ -771,8 +774,7 @@ describe('Integration test', () => {
 
 			mock.onPut('http://host-remote/remote-service/1234567890')
 				.reply(200, data)
-
-			// @ts-ignore
+			
 			const service = localApp.microservice('service-one::remote-service')
 			await service.get('1234567890')
 			const response = await service.update('1234567890', { name: 'Changed' })
@@ -789,8 +791,7 @@ describe('Integration test', () => {
 			// given
 			mock.onPut('http://host-remote/remote-service/1234567')
 				.reply(404)
-
-			// @ts-ignore
+			
 			service = localApp.microservice('service-one::remote-service')
 			await service.update('1234567', {}).catch((error) => {
 				expect(error).toBeDefined()
@@ -799,7 +800,6 @@ describe('Integration test', () => {
 
 			mock.onPut('http://host-remote/remote-service/1234567')
 				.networkError()
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.update('1234567', {}).catch((error) => {
 				expect(error).toBeDefined()
@@ -808,7 +808,6 @@ describe('Integration test', () => {
 
 			mock.onPut('http://host-remote/remote-service/1234567')
 				.timeout()
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.update('1234567', {}).catch((error) => {
 				expect(error).toBeDefined()
@@ -822,7 +821,6 @@ describe('Integration test', () => {
 						new errors.GeneralError()
 					];
 				})
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.update('1234567', {}).catch((error) => {
 				expect(error).toBeDefined()
@@ -838,8 +836,7 @@ describe('Integration test', () => {
 
 			mock.onDelete('http://host-remote/remote-service/1234567890')
 				.reply(200, data)
-
-			// @ts-ignore
+			
 			const service = localApp.microservice('service-one::remote-service')
 			await service.get('1234567890')
 			const response = await service.remove('1234567890')
@@ -855,8 +852,7 @@ describe('Integration test', () => {
 			// given
 			mock.onDelete('http://host-remote/remote-service/1234567')
 				.reply(404)
-
-			// @ts-ignore
+			
 			service = localApp.microservice('service-one::remote-service')
 			await service.remove('1234567').catch((error) => {
 				expect(error).toBeDefined()
@@ -865,7 +861,6 @@ describe('Integration test', () => {
 
 			mock.onDelete('http://host-remote/remote-service/1234567')
 				.networkError()
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.remove('1234567').catch((error) => {
 				expect(error).toBeDefined()
@@ -874,7 +869,6 @@ describe('Integration test', () => {
 
 			mock.onDelete('http://host-remote/remote-service/1234567')
 				.timeout()
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.remove('1234567').catch((error) => {
 				expect(error).toBeDefined()
@@ -888,7 +882,6 @@ describe('Integration test', () => {
 						new errors.GeneralError()
 					];
 				})
-			// @ts-ignore
 			service = localApp.microservice('service-one::remote-service')
 			await service.remove('1234567').catch((error) => {
 				expect(error).toBeDefined()
@@ -900,8 +893,7 @@ describe('Integration test', () => {
 			// given
 			mock.onGet('http://host-remote/remote-service')
 				.reply(200, [])
-
-			// @ts-ignore
+			
 			const service = localApp.microservice('service-one::remote-service')
 			const response = await service.find({ headers: { 'content-length': '123', 'upgrade': 'true', 'connection': 'websockets'}})
 			// then
@@ -913,9 +905,11 @@ describe('Integration test', () => {
 			expect(response).toEqual([])
 		})
 	})
+	
 	describe('Call remote service with rpc client', () => {
+		jest.setTimeout(8000)
 		let remoteApp, localApp
-		beforeAll(async () => {
+		beforeEach(async () => {
 			remoteApp = feathers()
 				.configure(microservices({
 					url: amqpUrl,
@@ -937,6 +931,7 @@ describe('Integration test', () => {
 
 			localApp = feathers()
 				.configure(microservices({
+					url: amqpUrl,
 					register: true,
 					key: 'app-local',
 					host: 'host-local',
@@ -948,12 +943,12 @@ describe('Integration test', () => {
 			expect(localService).toBeTruthy()
 			
 			const {check} = await fakeConnection()
-			await check((events) => {
-				// @ts-ignore
+			await check(async (events) => {
+				await new Promise((r) => setTimeout(r, 1000))
 				const remoteService = localApp.microservice('service-one::remote-service')
 				expect(remoteService).toBeTruthy()
 				expect(Object.keys(localApp.microservices).length).toBe(1)
-			})
+			}, 5000)
 		})
 
 		test('can use find method on remote service', async () => {
@@ -965,7 +960,6 @@ describe('Integration test', () => {
 				{ id: '3', name: 'Four' },
 				{ id: '4', name: 'Five' }
 			]
-			// @ts-ignore
 			const service = localApp.microservice('service-one::remote-service')
 			const response = await service.find({})
 			// then
@@ -976,7 +970,6 @@ describe('Integration test', () => {
 		
 		test('can use get method on remote service', async () => {
 			// given
-			// @ts-ignore
 			const service = localApp.microservice('service-one::remote-service')
 			const response = await service.get(0)
 			// then
@@ -986,7 +979,6 @@ describe('Integration test', () => {
 		
 		test('can use create method on remote service', async () => {
 			// given
-			// @ts-ignore
 			const service = localApp.microservice('service-one::remote-service')
 			const response = await service.create({ id: '5', name: 'Six' })
 			// then
@@ -996,7 +988,6 @@ describe('Integration test', () => {
 		
 		test('can use update method on remote service', async () => {
 			// given
-			// @ts-ignore
 			const service = localApp.microservice('service-one::remote-service')
 			const response = await service.update(0, { id: '0', foo: 'bar' })
 			// then
@@ -1006,7 +997,6 @@ describe('Integration test', () => {
 		
 		test('can use patch method on remote service', async () => {
 			// given
-			// @ts-ignore
 			const service = localApp.microservice('service-one::remote-service')
 			const response = await service.patch(1, { foo: 'bar' })
 			// then
@@ -1016,7 +1006,6 @@ describe('Integration test', () => {
 		
 		test('can use remove method on remote service', async () => {
 			// given
-			// @ts-ignore
 			const service = localApp.microservice('service-one::remote-service')
 			const response = await service.remove(2)
 			// then

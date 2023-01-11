@@ -1,5 +1,5 @@
 import { describe, expect, jest, test } from '@jest/globals'
-import { HelloEvent } from '../../lib/events'
+import { HelloEvent } from '../../../lib/events'
 
 describe('HelloEvent', () => {
 	test('can be created',  async () => {

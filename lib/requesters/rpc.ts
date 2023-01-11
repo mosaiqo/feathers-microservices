@@ -26,7 +26,7 @@ export class RpcRequester implements InterfaceRequester{
 		this.timeouts = {}
 	}
 	async init() {
-		this.replyTo = await this.channel.assertQueue('', { durable: false })
+		this.replyTo = await this.channel.assertQueue('', { durable: false, exclusive: true })
 		this.channel.consume(this.replyTo.queue, async (msg) => {
 			const event = JSON.parse(`${Buffer.from(msg.content)}`)
 			const correlationId = msg.properties.correlationId

@@ -1,24 +1,23 @@
 import { feathers } from '@feathersjs/feathers'
 import { describe, expect, jest, test } from '@jest/globals'
 import memory from 'feathers-memory'
-import { fakeRpcRequester } from '../configs'
-import { AmqpClient } from '../../lib/clients'
-import { RPCRequestEvent } from '../../lib/events'
-import { RpcReplier } from '../../lib/repliers/rpc'
+import { fakeRpcRequester, amqpUrl } from '../../configs'
+import { AmqpClient } from '../../../lib/clients'
+import { RPCRequestEvent } from '../../../lib/events'
+import { RpcReplier } from '../../../lib/repliers/rpc'
 import * as amqplib from 'amqplib'
 import mockAmqplib from 'mock-amqplib'
-jest.mock('amqplib')
 jest.mock('amqplib', () => ({
 	connect: () => mockAmqplib.connect()
 }))
 
 
 describe('RPCReplier', () => {
-	let client, channel, app
+	let channel, app
 	beforeEach(async () => {
 		jest.clearAllMocks()
-		client = new AmqpClient('some-url')
-		channel = await client.connect()
+		const client = await AmqpClient.connect(amqpUrl)
+		channel = client.channel
 		app = feathers()
 		app.use('some-path', memory({
 			store: [

@@ -3,12 +3,11 @@ import * as amqplib from 'amqplib'
 import mockAmqplib from 'mock-amqplib'
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter'
-import { AmqpClient } from '../../lib/clients'
-import { Requester } from '../../lib/requesters'
-import { HttpRequester } from '../../lib/requesters/http'
-import { RpcRequester } from '../../lib/requesters/rpc'
+import { AmqpClient } from '../../../lib/clients'
+import { Requester } from '../../../lib/requesters'
+import { HttpRequester } from '../../../lib/requesters/http'
+import { RpcRequester } from '../../../lib/requesters/rpc'
 
-jest.mock('amqplib')
 jest.mock('amqplib', () => ({
 	connect: () => mockAmqplib.connect()
 }))
@@ -19,9 +18,8 @@ describe('Requester Factory', () => {
 	})
 	
 	test('should return a rcp requester by default',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
-		const requester = await Requester.create({ key: 'test-key' }, channel, null)
+		const {channel} = await AmqpClient.connect('some-url')
+		const requester = await Requester.create({ key: 'test-key' }, channel)
 		expect(requester instanceof RpcRequester).toBeTruthy()
 	})
 	
@@ -31,15 +29,13 @@ describe('Requester Factory', () => {
 	})
 	
 	test('should return a rcp requester',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
+		const {channel} = await AmqpClient.connect('some-url')
 		const requester = await Requester.create({ key: 'test-key' }, channel, 'RPC')
 		expect(requester instanceof RpcRequester).toBeTruthy()
 	})
 	
 	test('should return a rpc requester if wrong type provided',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
+		const {channel} = await AmqpClient.connect('some-url')
 		const requester = await Requester.create({ key: 'test-key' }, channel, 'other')
 		expect(requester instanceof RpcRequester).toBeTruthy()
 	})

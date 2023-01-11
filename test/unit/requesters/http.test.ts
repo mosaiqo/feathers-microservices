@@ -3,7 +3,7 @@ import { describe, expect, jest, test } from '@jest/globals'
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter'
 
-import { HttpRequester } from '../../lib/requesters/http'
+import { HttpRequester } from '../../../lib/requesters/http'
 
 describe('HttpRequester', () => {
 	let mock
@@ -46,6 +46,26 @@ describe('HttpRequester', () => {
 		expect(requester instanceof HttpRequester).toBeTruthy()
 	})
 	
+	test('sends data in the request',  async () => {
+		mock.onPost('http://host-remote/remote-service')
+			.reply(200, { data: {foo: 'bar'}})
+		
+		const requester = new HttpRequester({
+			host: 'host-remote',
+			maxRedirects: 3,
+			keepAlive: true
+		})
+		
+		// @ts-ignore
+		const response = await requester.send({
+			type: 'create', path: 'remote-service', data: {foo: 'bar'}, params: {}
+		})
+		
+		// @ts-ignore
+		expect(response.data).toStrictEqual({foo: 'bar'})
+		expect(requester instanceof HttpRequester).toBeTruthy()
+	})
+	
 	test('removes unwanted headers',  () => {
 		mock.onGet('http://host-remote/remote-service')
 			.reply(200, [])
@@ -70,6 +90,7 @@ describe('HttpRequester', () => {
 		// @ts-ignore
 		expect(requester.maxRedirects).toBe(3)
 		expect(requester instanceof HttpRequester).toBeTruthy()
+	
 	})
 	
 	test('filters out correct params based on excludedParams',  () => {

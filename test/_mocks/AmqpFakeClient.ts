@@ -1,12 +1,13 @@
-import amqplib, { Channel, Connection } from 'amqplib'
-import { AmqpClientConnection, InterfaceAmqpClient } from '../types'
-import { DEFAULT_EXCHANGE_EVENTS, DEFAULT_EXCHANGE_SERVICES } from '../constants'
-export class AmqpClient implements InterfaceAmqpClient {
+/* istanbul ignore file */
+import * as amqplib from 'amqplib'
+import { AmqpClientConnection, InterfaceAmqpClient } from '../../lib/types'
+import { DEFAULT_EXCHANGE_EVENTS, DEFAULT_EXCHANGE_SERVICES } from '../../lib/constants'
+export class AmqpFakeClient implements InterfaceAmqpClient {
 	url: string
-	connection: Connection
-	channel: Channel
+	connection: amqplib.Connection
+	channel: amqplib.Channel
 	options
-	private constructor (url, options) {
+	private constructor (url, options = {}) {
 		this.url = url
 		this.options = {
 			exchanges: {
@@ -17,7 +18,7 @@ export class AmqpClient implements InterfaceAmqpClient {
 		}
 	}
 	static async connect (url, options = {}): Promise<AmqpClientConnection> {
-		const instance = new AmqpClient(url, options)
+		const instance = new AmqpFakeClient(url, options)
 		const socketOptions = { clientProperties: {} }
 		
 		if (instance.options.name) {
@@ -33,4 +34,4 @@ export class AmqpClient implements InterfaceAmqpClient {
 	}
 }
 
-export default AmqpClient
+export default AmqpFakeClient

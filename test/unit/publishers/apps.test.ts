@@ -1,24 +1,22 @@
 import { describe, expect, jest, test } from '@jest/globals'
 import * as amqplib from 'amqplib'
 import mockAmqplib from 'mock-amqplib'
-import { AmqpClient } from '../../lib/clients'
-import { AppsPublisher } from '../../lib/publishers'
-import { HelloEvent, ServicesPublishedEvent } from '../../lib/events'
+import { AmqpClient } from '../../../lib/clients'
+import { AppsPublisher } from '../../../lib/publishers'
+import { HelloEvent, ServicesPublishedEvent } from '../../../lib/events'
 jest.mock('amqplib')
 jest.mock('amqplib', () => ({
 	connect: () => mockAmqplib.connect()
 }))
 describe('RabbitMQ AppsPublisher', () => {
 	test('should connect',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
+		const {channel} = await AmqpClient.connect('some-url')
 		const publisher = new AppsPublisher(channel, 'custom-exchange',  'custom-key')
 		await publisher.init()
 	})
 	
 	test('emits HelloEvent',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
+		const { channel } = await AmqpClient.connect('some-url')
 		const publisher = new AppsPublisher(channel, 'custom-exchange',  'custom-key')
 		await publisher.init()
 		

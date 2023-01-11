@@ -1,5 +1,15 @@
-import { ServiceInterface, Application as FeathersApplication, FeathersService } from '@feathersjs/feathers/lib/declarations'
+import { ServiceAddons } from '@feathersjs/feathers'
+import {
+	Params,
+	ServiceAddons as FeathersServiceAddons,
+	FeathersService,
+	Service as FService,
+	ServiceInterface,
+	Application as FeathersApplication
+} from '@feathersjs/feathers/lib/declarations'
+import { Channel, Connection } from 'amqplib'
 import { EventEmitter } from 'events'
+import { AmqpClient } from '../lib/clients'
 import { HelloEvent, ServicesPublishedEvent } from './events'
 import { MicroServiceType } from './constants'
 
@@ -51,7 +61,28 @@ declare module "@feathersjs/feathers" {
 		): FeathersService<this, keyof any extends keyof Services ? Service : Services[L]>
 	}
 	
+	interface ServiceAddons<A = FeathersApplication, S = FService> extends FeathersServiceAddons, EventEmitter {
+		path: string
+		
+		remote: boolean
+		
+		requester: any
+	}
 }
+
+
+export declare interface InterfaceAmqpClient {
+	url: string,
+	connection: Connection
+	channel: Channel
+	options
+}
+export declare type AmqpClientConnection = {
+	client: AmqpClient,
+	channel: Channel,
+	connection: Connection,
+}
+
 export declare interface InterfaceConsumer {
 	init()
 }

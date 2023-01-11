@@ -1,5 +1,5 @@
 import { describe, expect, jest, test } from '@jest/globals'
-import { RPCRequestEvent } from '../../lib/events'
+import { RPCRequestEvent } from '../../../lib/events'
 
 describe('RPCRequestEvent', () => {
 	test('can be created',  async () => {

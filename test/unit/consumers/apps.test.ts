@@ -1,24 +1,23 @@
 import { describe, expect, jest, test } from '@jest/globals'
 import * as amqplib from 'amqplib'
 import mockAmqplib from 'mock-amqplib'
-import { AmqpClient } from '../../lib/clients'
-import { AppsConsumer } from '../../lib/consumers'
-import { HelloEvent, ServicesPublishedEvent } from '../../lib/events'
-jest.mock('amqplib')
+import { AmqpClient } from '../../../lib/clients'
+import { AppsConsumer } from '../../../lib/consumers'
+import { HelloEvent, ServicesPublishedEvent } from '../../../lib/events'
+
 jest.mock('amqplib', () => ({
 	connect: () => mockAmqplib.connect()
 }))
+
 describe('RabbitMQ AppsConsumer', () => {
 	test('should connect',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
+		const { channel } = await AmqpClient.connect('some-url')
 		const consumer = new AppsConsumer(channel, 'custom-exchange', 'custom-queue', 'custom-key')
 		await consumer.init()
 	})
 	
 	test('subscribes to HelloEvent',  async () => {
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
+		const { channel } = await AmqpClient.connect('some-url')
 		const consumer = new AppsConsumer(channel, 'custom-exchange', 'custom-queue', 'custom-key')
 		await consumer.init()
 		await consumer.onHello(async (e: HelloEvent) => {
@@ -43,8 +42,7 @@ describe('RabbitMQ AppsConsumer', () => {
 			methods: ['find', 'get', 'create', 'patch', 'remove'],
 			events: ['created', 'updated', 'patched', 'removed']
 		}
-		const client = new AmqpClient('some-url')
-		const channel = await client.connect()
+		const { channel } = await AmqpClient.connect('some-url')
 		const consumer = new AppsConsumer(channel, 'custom-exchange', 'custom-queue', 'custom-key')
 		await consumer.init()
 		await consumer.onServicesPublished(async (e: ServicesPublishedEvent) => {
