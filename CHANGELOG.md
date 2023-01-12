@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.7](https://github.com/mosaiqo/feathers-microservices/compare/0.0.6...0.0.7) (2023-01-12)
+
+
+### Bug Fixes
+
+* add build script to workflow ([357231d](https://github.com/mosaiqo/feathers-microservices/commit/357231dcc52b1e515c9b428069f2fc3b6603a82c))
+
 ### [0.0.6](https://github.com/mosaiqo/feathers-microservices/compare/0.0.5...0.0.6) (2023-01-12)
 
 
