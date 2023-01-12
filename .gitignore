@@ -2,3 +2,13 @@ dist/
 coverage/
 node_modules/
 .idea/
+
+pids
+logs
+npm-debug.log
+run
+.DS_Store
+.nyc_output
+.basement
+config.local.js
+basement_dist
