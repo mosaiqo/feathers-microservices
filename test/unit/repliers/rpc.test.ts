@@ -6,9 +6,9 @@ import { AmqpClient } from '../../../lib/clients'
 import { RPCRequestEvent } from '../../../lib/events'
 import { RpcReplier } from '../../../lib/repliers/rpc'
 import * as amqplib from 'amqplib'
-import mockAmqplib from 'mock-amqplib'
+import { AmqpLibMock } from '../../_mocks/AmqpLibMock'
 jest.mock('amqplib', () => ({
-	connect: () => mockAmqplib.connect()
+	connect: () => AmqpLibMock.connect()
 }))
 
 

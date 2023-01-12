@@ -2,13 +2,12 @@ import * as errors from '@feathersjs/errors'
 import { feathers } from '@feathersjs/feathers'
 import { describe, expect, jest, test } from '@jest/globals'
 import * as amqplib from 'amqplib'
-import mockAmqplib from 'mock-amqplib'
+import { AmqpLibMock } from '../_mocks/AmqpLibMock'
 import microservices from '../../lib'
 import { amqpUrl } from '../configs'
 
-jest.mock('amqplib')
 jest.mock('amqplib', () => ({
-	connect: () => mockAmqplib.connect()
+	connect: () => AmqpLibMock.connect()
 }))
 
 describe('Feathers plugin', () => {

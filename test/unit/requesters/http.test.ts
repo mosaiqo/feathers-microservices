@@ -1,8 +1,7 @@
 import * as errors from '@feathersjs/errors'
-import { describe, expect, jest, test } from '@jest/globals'
+import { describe, expect, test } from '@jest/globals'
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter'
-
 import { HttpRequester } from '../../../lib/requesters/http'
 
 describe('HttpRequester', () => {

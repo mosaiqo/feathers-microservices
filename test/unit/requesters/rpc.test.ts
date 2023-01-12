@@ -1,15 +1,14 @@
 import { feathers } from '@feathersjs/feathers'
 import { describe, expect, jest, test } from '@jest/globals'
-import memory from 'feathers-memory'
 import { fakeRpcResponder, amqpUrl } from '../../configs'
 import { AmqpClient } from '../../../lib/clients'
 import { RpcRequester } from '../../../lib/requesters/rpc'
 import * as amqplib from 'amqplib'
-import mockAmqplib from 'mock-amqplib'
+import { AmqpLibMock } from '../../_mocks/AmqpLibMock'
 
 jest.setTimeout(8000)
 jest.mock('amqplib', () => ({
-	connect: () => mockAmqplib.connect()
+	connect: () => AmqpLibMock.connect()
 }))
 
 describe.only('RpcRequester', () => {

@@ -1,4 +1,4 @@
-import { describe, expect, jest, test } from '@jest/globals'
+import { describe, expect, test } from '@jest/globals'
 import { feathers } from '@feathersjs/feathers'
 import { HelloEvent } from '../../../lib/events'
 import { AppsRegistrar } from '../../../lib/regristrars'

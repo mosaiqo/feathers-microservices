@@ -1,6 +1,6 @@
 import { describe, expect, jest, test } from '@jest/globals'
 import * as amqplib from 'amqplib'
-import mockAmqplib from 'mock-amqplib'
+import { AmqpLibMock } from '../../_mocks/AmqpLibMock'
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter'
 import { AmqpClient } from '../../../lib/clients'
@@ -9,7 +9,7 @@ import { HttpRequester } from '../../../lib/requesters/http'
 import { RpcRequester } from '../../../lib/requesters/rpc'
 
 jest.mock('amqplib', () => ({
-	connect: () => mockAmqplib.connect()
+	connect: () => AmqpLibMock.connect()
 }))
 describe('Requester Factory', () => {
 	let mock

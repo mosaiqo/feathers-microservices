@@ -1,6 +1,6 @@
 import { describe, expect, jest, test } from '@jest/globals'
 import * as amqplib from 'amqplib'
-import mockAmqplib from 'mock-amqplib'
+import { AmqpLibMock } from '../../_mocks/AmqpLibMock'
 import {
 	DEFAULT_EXCHANGE_EVENTS,
 	DEFAULT_EXCHANGE_SERVICES
@@ -8,7 +8,7 @@ import {
 import { AmqpClient } from '../../../lib/clients'
 
 jest.mock('amqplib', () => ({
-	connect: () => mockAmqplib.connect()
+	connect: () => AmqpLibMock.connect()
 }))
 
 describe('AMQP Client', () => {

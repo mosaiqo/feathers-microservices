@@ -4,8 +4,12 @@
 		"module": "commonjs",
 		"target": "es2022",
 		"declaration": true,
+		"skipLibCheck": true,
 		"outDir": "./dist"
 	},
+	"exclude": [
+		"node_modules"
+	],
 	"include": [
 		"lib/**/*"
 	]

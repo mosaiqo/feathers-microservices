@@ -3,7 +3,7 @@ import { feathers } from '@feathersjs/feathers'
 import { describe, expect, jest, test } from '@jest/globals'
 import * as amqplib from 'amqplib'
 import memory from 'feathers-memory'
-import mockAmqplib from 'mock-amqplib'
+import { AmqpLibMock } from '../_mocks/AmqpLibMock'
 import { AmqpClient } from '../../lib/clients'
 import { ServicesPublishedEvent, HelloEvent } from '../../lib/events'
 import { HttpRequester } from '../../lib/requesters/http'
@@ -14,7 +14,7 @@ import { MicroService } from '../../lib/microservice'
 import { amqpUrl, fakeConnection } from '../configs'
 
 jest.mock('amqplib', () => ({
-	connect: () => mockAmqplib.connect()
+	connect: () => AmqpLibMock.connect()
 }))
 
 describe('Feathers plugin', () => {

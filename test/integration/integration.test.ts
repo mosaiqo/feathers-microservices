@@ -11,16 +11,16 @@ import microservices from '../../lib'
 import {v4} from 'uuid'
 import { amqpUrl, fakeConnection, closeConnections } from '../configs'
 import * as amqplib from 'amqplib'
-import mockAmqplib from 'mock-amqplib'
-
+import { AmqpLibMock } from '../_mocks/AmqpLibMock'
 import { AmqpFakeClient } from '../_mocks/AmqpFakeClient'
 
 let clients = []
 
 jest.setTimeout(6000)
 jest.mock('amqplib', () => ({
-	connect: () => mockAmqplib.connect()
+	connect: () => AmqpLibMock.connect()
 }))
+
 jest.mock('../../lib/clients/amqp', () => ({
 	connect: async (url, options = {}) => {
 		let { channel, connection } = await AmqpFakeClient.connect(url, options)

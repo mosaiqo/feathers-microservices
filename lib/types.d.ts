@@ -1,6 +1,4 @@
-import { ServiceAddons } from '@feathersjs/feathers'
 import {
-	Params,
 	ServiceAddons as FeathersServiceAddons,
 	FeathersService,
 	Service as FService,
@@ -9,7 +7,7 @@ import {
 } from '@feathersjs/feathers/lib/declarations'
 import { Channel, Connection } from 'amqplib'
 import { EventEmitter } from 'events'
-import { AmqpClient } from '../lib/clients'
+import { AmqpClient } from './clients'
 import { HelloEvent, ServicesPublishedEvent } from './events'
 import { MicroServiceType } from './constants'
 

@@ -1,10 +1,10 @@
-import amqplib, { Channel, Connection } from 'amqplib'
+import * as amqplib from 'amqplib'
 import { AmqpClientConnection, InterfaceAmqpClient } from '../types'
 import { DEFAULT_EXCHANGE_EVENTS, DEFAULT_EXCHANGE_SERVICES } from '../constants'
 export class AmqpClient implements InterfaceAmqpClient {
 	url: string
-	connection: Connection
-	channel: Channel
+	connection: amqplib.Connection
+	channel: amqplib.Channel
 	options
 	private constructor (url, options) {
 		this.url = url
