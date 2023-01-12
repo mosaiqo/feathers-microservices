@@ -1,6 +1,6 @@
 {
   "name": "@mosaiqo/feathers-microservices",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "This is my humble opinionated approach to connect different microservices written in Feathers JS.",
   "homepage": "https://mosaiqo.github.io/feathers-microservices/",
   "repository": "https://github.com/mosaiqo/feathers-microservices/",
