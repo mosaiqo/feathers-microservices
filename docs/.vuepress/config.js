@@ -34,9 +34,11 @@ module.exports = {
   themeConfig: {
     logo: '/feathers-microservices-logo.png',
     repo: 'https://github.com/mosaiqo/feathers-microservices',
-    editLinks: false,
-    docsDir: '',
-    editLinkText: '',
+    editLinks: true,
+    docsDir: 'docs',
+    // if your docs are in a specific branch (defaults to 'master'):
+    docsBranch: 'main',
+    editLinkText: 'Help us improve this page!',
     lastUpdated: 'Last Updated',
     nav: [
       {
