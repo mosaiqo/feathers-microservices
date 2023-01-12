@@ -24,8 +24,7 @@ jobs:
           version: 7
           # install deps with pnpm
           run_install: |
-            - recursive: true
-              args: [--dev]
+            - args: [--dev]
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
