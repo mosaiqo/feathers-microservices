@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.5](https://github.com/mosaiqo/feathers-microservices/compare/0.0.4...0.0.5) (2023-01-12)
+
+
+### Bug Fixes
+
+* package.json file to point to the correct entrypoint ([dd97014](https://github.com/mosaiqo/feathers-microservices/commit/dd9701448061345cbe25ef636584cb2d432807b9))
+
 ### [0.0.4](https://github.com/mosaiqo/feathers-microservices/compare/0.0.3...0.0.4) (2023-01-12)
 
 ### [0.0.3](https://github.com/mosaiqo/feathers-microservices/compare/0.0.2...0.0.3) (2023-01-12)
