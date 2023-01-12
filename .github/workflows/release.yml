@@ -16,7 +16,9 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: "16"
+
       - uses: c-hive/gha-yarn-cache@v2
+
       # Install required deps for action
       - name: Install Dependencies
         run: yarn install
@@ -24,13 +26,12 @@ jobs:
       - name: Build
         run: yarn compile
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
         with:
-          body_path: CHANGELOG.md
-          # note you'll typically need to create a personal access token
-          # with permissions to create releases in the other repo
-          token: ${{ secrets.GITHUB_TOKEN }}
+          name: dist
+          path: dist
+
 
   publish:
     needs: build
@@ -40,15 +41,32 @@ jobs:
       contents: read
       packages: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Setup
-        uses: actions/setup-node@v3
+      - name: Download a artifacts
+        uses: actions/download-artifact@v3
         with:
-          node-version: 16
-          registry-url: https://registry.npmjs.org/
+          name: dist
+
       - name: Publish to registry
         run: yarn publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
           access: "public"
+
+  release:
+    name: Release Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: "16"
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: CHANGELOG.md
+          # note you'll typically need to create a personal access token
+          # with permissions to create releases in the other repo
+          token: ${{ secrets.GITHUB_TOKEN }}
