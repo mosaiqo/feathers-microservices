@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.11](https://github.com/mosaiqo/feathers-microservices/compare/0.0.10...0.0.11) (2023-01-12)
+
+
+### Bug Fixes
+
+* add .yarnrc file ([9f4eabc](https://github.com/mosaiqo/feathers-microservices/commit/9f4eabc353b8124d8b75436c96814f69918f905b))
+
 ### [0.0.10](https://github.com/mosaiqo/feathers-microservices/compare/0.0.9...0.0.10) (2023-01-12)
 
 
