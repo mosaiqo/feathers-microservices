@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.10](https://github.com/mosaiqo/feathers-microservices/compare/0.0.9...0.0.10) (2023-01-12)
+
+
+### Bug Fixes
+
+* add .npmrc file ([e3ae4a7](https://github.com/mosaiqo/feathers-microservices/commit/e3ae4a74d0f44240627fa0954831ab4d5df59af4))
+* add .npmrc file ([df414a9](https://github.com/mosaiqo/feathers-microservices/commit/df414a92631b087d0e6a1a8f98c8996f8b53df8b))
+* add .npmrc file ([cd80202](https://github.com/mosaiqo/feathers-microservices/commit/cd80202d350edfe123ce27980e8abba30079d055))
+* add .yarnrc file ([f514677](https://github.com/mosaiqo/feathers-microservices/commit/f51467716092fe3c7f39eff55983c90a75721dfd))
+
 ### [0.0.9](https://github.com/mosaiqo/feathers-microservices/compare/0.0.8...0.0.9) (2023-01-12)
 
 
