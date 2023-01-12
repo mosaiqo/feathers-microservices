@@ -46,6 +46,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v1
         with:
+          always-auth: true
           node-version: "16"
 
       - name: Download a artifacts
@@ -53,13 +54,17 @@ jobs:
         with:
           name: dist
 
+      - name: Add NPM token to .npmrc
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
       - name: Publish to registry
         run: yarn publish
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           access: "public"
 
   release:
+    needs: publish
     name: Release Package
     runs-on: ubuntu-latest
     steps:
