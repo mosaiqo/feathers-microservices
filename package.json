@@ -14,10 +14,10 @@
     "test": "test"
   },
   "files": [
-    "lib/index.js",
-    "lib/**/*.d.ts"
+    "dist/index.js",
+    "dist/**/*.d.ts"
   ],
-  "main": "lib/index",
+  "main": "./dist/index.js",
   "scripts": {
     "dev": "nodemon -x ts-node src/index.ts",
     "compile": "shx rm -rf dist/ && tsc",
