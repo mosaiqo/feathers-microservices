@@ -173,9 +173,16 @@ const createHeadersExchange = options => {
 	}
 }
 
-const queues = {}
-const exchanges = {
+let queues = {}
+let exchanges = {
 	[DEFAULT_EXCHANGE_NAME]: createDirectExchange({})
+}
+
+export const clear = ( ) => {
+	queues = {}
+	exchanges = {
+		[DEFAULT_EXCHANGE_NAME]: createDirectExchange({})
+	}
 }
 
 const publishMessage = (exchangeName, routingKey, content, options) => {
@@ -283,6 +290,13 @@ const createChannel = async () => ({
 			consumerCount: queues[queueName].getConsumerCount()
 		}
 	},
+	deleteExchange: async (exchangeName) => {
+		if (exchanges[exchangeName]) {
+			delete exchanges[exchangeName]
+		}
+		
+		return
+	},
 	assertExchange: async (exchangeName, type, options = {}) => {
 		let exchange
 		
@@ -349,7 +363,9 @@ const createChannel = async () => ({
 	checkExchange: async exchangeName => ({
 		exchange: exchangeName
 	}),
-	purgeQueue: queueName => queues[queueName].purge()
+	purgeQueue: queueName => {
+		queues[queueName].purge()
+	}
 })
 
 const createConfirmChannel = async () => {

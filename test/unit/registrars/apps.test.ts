@@ -9,8 +9,8 @@ describe('Apps Registrars', () => {
 	
 	test('it should register a new app on an HelloEvent',  () => {
 		const registrar = new AppsRegistrar(app)
-		registrar.register(HelloEvent.create('app-id', 'app-key', 'host', 'HTTP'))
+		registrar.register(HelloEvent.create('app-id', 'app-key', 'host', 'HTTP', true, true))
 		expect(registrar.app).toBe(app)
-		expect(app.microservices).toStrictEqual({"app-key": { "host": "host", "key": "app-key", "type": "HTTP"}})
+		expect(app.microservices).toStrictEqual({"app-key": { "host": "host", "key": "app-key", "type": "HTTP", "registrar": true, "publisher": true}})
 	})
 })

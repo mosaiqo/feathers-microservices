@@ -2,6 +2,7 @@
 import { expect, jest } from '@jest/globals'
 import * as amqplib from 'amqplib'
 import { v4 } from 'uuid'
+import { clear } from './_mocks/AmqpLibMock'
 
 export const mockIt = false
 let testUrl = 'amqp://localhost:5672'
@@ -9,7 +10,7 @@ let devUrl = 'amqp://development:secret12345678@localhost:5672'
 
 export const amqpUrl = mockIt ? testUrl : devUrl
 let connection, channel, client
-export const amqpClient = client
+
 export const fakeRpcRequester = async (queue, data, channel, timesOut = false) => {
 	let event = null
 	queue = `${queue}-service`
@@ -95,8 +96,11 @@ export const fakeConnection = async (config = {}) => {
 	}, {consumerTag})
 	const purge = async () => {
 		events = []
+		console.log(await channel.checkQueue(consumerTag))
 		await channel.purgeQueue(consumerTag)
 		channel.cancel(consumerTag)
+		channel.deleteExchange('microservices-services')
+		console.log(await channel.checkQueue(consumerTag))
 	}
 	
 	return {
@@ -104,11 +108,14 @@ export const fakeConnection = async (config = {}) => {
 			await new Promise((r) => setTimeout(r, 1000))
 			connection.close()
 		},
-		check: async function (cb, timeout = 4000) {
+		check: async function (cb, timeout = 4000, clearAmqp = true) {
 			await new Promise((r) => setTimeout(r, timeout))
 			await cb(events)
-			await purge()
+			if (clearAmqp) {
+				await clear()
+			}
 		},
+		clear,
 		purge
 	}
 }

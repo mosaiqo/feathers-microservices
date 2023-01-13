@@ -28,7 +28,7 @@ describe('RabbitMQ AppsConsumer', () => {
 			expect(e.type).toBe('type')
 		})
 		
-		const event = HelloEvent.create('id', 'key', 'host', 'type')
+		const event = HelloEvent.create('id', 'key', 'host', 'type', true, true)
 		channel.publish('custom-exchange', '', Buffer.from(JSON.stringify(event.toJson())))
 	})
 	

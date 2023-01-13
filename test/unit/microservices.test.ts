@@ -197,7 +197,7 @@ describe('Feathers plugin', () => {
 		expect(m.consumers.app).toBeDefined()
 		expect(m.registrars.app).toBeDefined()
 
-		const event = HelloEvent.create('id', 'key', 'host', 'RPC')
+		const event = HelloEvent.create('id', 'key', 'host', 'RPC', true, true)
 		channel.publish('custom-exchange-for-services', '', Buffer.from(JSON.stringify(event.toJson())))
 		
 		await new Promise((r) => setTimeout(r, 500))
@@ -267,7 +267,7 @@ describe('Feathers plugin', () => {
 		expect(m.consumers.app).toBeDefined()
 		expect(m.registrars.app).toBeDefined()
 
-		const event = HelloEvent.create('id', 'key', 'host', 'RPC')
+		const event = HelloEvent.create('id', 'key', 'host', 'RPC', true, true)
 		channel.publish('custom-exchange-for-services', '', Buffer.from(JSON.stringify(event.toJson())))
 		
 		await new Promise((r) => setTimeout(r, 4000))

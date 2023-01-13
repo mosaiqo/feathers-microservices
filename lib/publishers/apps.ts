@@ -1,6 +1,6 @@
 import { Channel } from 'amqplib'
 import makeDebug from 'debug'
-import { HelloEvent, ServicesPublishedEvent } from '../events'
+import { HelloEvent, ServicesPublishedEvent, WelcomeEvent } from '../events'
 import { InterfacePublisher } from '../types.d'
 
 const debug = makeDebug('mosaiqo-feathers-microservices')
@@ -26,6 +26,14 @@ export class AppsPublisher implements InterfacePublisher {
 	}
 	
 	async emitGreet(event: HelloEvent) {
+		await this.channel.publish(
+			this.exchange,
+			'',
+			Buffer.from(JSON.stringify(event.toJson()))
+		)
+	}
+	
+	async emitWelcome(event: WelcomeEvent) {
 		await this.channel.publish(
 			this.exchange,
 			'',

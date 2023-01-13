@@ -21,7 +21,7 @@ describe('RabbitMQ AppsPublisher', () => {
 		const publisher = new AppsPublisher(channel, 'custom-exchange',  'custom-key')
 		await publisher.init()
 		
-		const event = HelloEvent.create('id', 'key', 'host', 'HTTP')
+		const event = HelloEvent.create('id', 'key', 'host', 'HTTP', true, true)
 		await publisher.emitGreet(event)
 		
 		

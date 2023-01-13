@@ -1,5 +1,5 @@
 import { Channel } from 'amqplib'
-import { HelloEvent, ServicesPublishedEvent } from '../events'
+import { HelloEvent, ServicesPublishedEvent, WelcomeEvent } from '../events'
 import { InterfaceConsumer } from '../types.d'
 
 export class AppsConsumer implements InterfaceConsumer {
@@ -20,6 +20,7 @@ export class AppsConsumer implements InterfaceConsumer {
 		
 		this.events = {
 			HelloEvent: HelloEvent,
+			WelcomeEvent: WelcomeEvent,
 			ServicesPublishedEvent: ServicesPublishedEvent
 		}
 	}
@@ -65,6 +66,10 @@ export class AppsConsumer implements InterfaceConsumer {
 	
 	async onHello(cb: (e: HelloEvent) => {}) {
 		this.callbacks.HelloEvent = cb
+	}
+	
+	async onWelcome(cb: (e: WelcomeEvent) => {}) {
+		this.callbacks.WelcomeEvent = cb
 	}
 	
 	async onServicesPublished(cb: (e: ServicesPublishedEvent) => {}) {

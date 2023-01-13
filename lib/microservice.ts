@@ -6,13 +6,14 @@ import { v4 } from 'uuid'
 import { ConsumerMap, InterfaceMicroServicesOptions, PublisherMap, RegistrarMap, Service } from './types'
 import { MicroServicesOptionsDefaults, MicroServiceType } from './constants'
 import { AppsRegistrar } from './regristrars'
-import { HelloEvent, ServicesPublishedEvent } from './events'
+import { HelloEvent, ServicesPublishedEvent, WelcomeEvent } from './events'
 import { AppsPublisher } from './publishers'
 import { RpcReplier } from './repliers'
 import { Requester } from './requesters'
 import { RemoteService } from './service'
 import { AmqpClient } from './clients'
 import { AppsConsumer } from './consumers'
+
 export class MicroService {
 	app
 	options: InterfaceMicroServicesOptions
@@ -26,17 +27,17 @@ export class MicroService {
 	consumers: ConsumerMap = {}
 	publishers: PublisherMap = {}
 	registrars: RegistrarMap = {}
-	debug: boolean | string  = false
-	
+	debug: boolean | string = false
+	greeted: boolean = false
 	/**
 	 * This will create the communications channels for the microservices
 	 * @param app
 	 * @param options
 	 */
-	constructor (app, options?: InterfaceMicroServicesOptions ) {
+	constructor (app, options?: InterfaceMicroServicesOptions) {
 		this.id = options?.id || v4()
 		this.key = options?.key || options?.host || v4()
-		this.name = `${this.key}-${this.id}`
+		this.name = `${ this.key }-${ this.id }`
 		this.queue = this.createUniqueQueue(this.id, this.key, options)
 		this.debug = options?.debug
 		
@@ -50,13 +51,13 @@ export class MicroService {
 			name: this.id,
 			service: this.id,
 			host: this.id,
-			...options,
+			...options
 		}
 		
 		this.createHelperFunctions(app)
 	}
 	
-	async createHelperFunctions(app) {
+	async createHelperFunctions (app) {
 		// Save app for later use
 		this.app = app
 		
@@ -68,15 +69,14 @@ export class MicroService {
 		
 		// Override the service method to avoid calling remote services from here
 		this.app.service = function (path) {
-			const location = stripSlashes(path) || '/';
-			const current = this.services[location];
+			const location = stripSlashes(path) || '/'
+			const current = this.services[location]
 			if (current?.remote) {
-				throw new Error('Current service is remote `app.service(path)` is not supported. Use `app.microservice(path)` instead.');
+				throw new Error('Current service is remote `app.service(path)` is not supported. Use `app.microservice(path)` instead.')
 			}
 			return this.microservice(path)
 		}.bind(this.app)
 	}
-	
 	
 	/**
 	 * Connects to the queue and inits the microservices
@@ -89,12 +89,14 @@ export class MicroService {
 		await this.subscribeToNewApps()
 		await this.subscribeToNewService()
 		
-		await this.publishApp()
-		await this.publishServices()
+		await this.publish()
 	}
 	
 	async createClient () {
-		const { channel, connection } = await AmqpClient.connect(this.options.url, { exchanges: this.options.exchanges, name: this.name })
+		const { channel, connection } = await AmqpClient.connect(this.options.url, {
+			exchanges: this.options.exchanges,
+			name: this.name
+		})
 		
 		this.client = channel
 		this.channel = channel
@@ -123,30 +125,37 @@ export class MicroService {
 			await registrar.init()
 		}
 	}
-
-	async subscribeToNewApps() {
+	
+	async subscribeToNewApps () {
 		await this.consumers.app.onHello(async (event: HelloEvent) => {
-			// this.app.microservices[event.uuid] = event.data
 			this.registrars.app.register(event)
+			if (this.greeted) {
+				await this.publishForNewcomers()
+			}
+		})
+		
+		await this.consumers.app.onWelcome(async (event: WelcomeEvent) => {
+			this.registrars.app.register(event)
+			await this.registerServices(event?.data?.services)
 		})
 	}
 	
-	async subscribeToNewService() {
+	async subscribeToNewService () {
 		if (!this.options.register) { return }
 		await this.consumers.app.onServicesPublished(async (event) => {
 			await this.registerServices(event?.data?.services)
 		})
 	}
 	
-	async registerServices(services) {
+	async registerServices (services) {
 		for (const serviceConfig of services) {
-			const registerPath = `${serviceConfig.service}::${serviceConfig.path}`
+			const registerPath = `${ serviceConfig.service }::${ serviceConfig.path }`
 			const service = this.app.services[registerPath]
 			if (service && service.remote) {
 				// this.app.unuse(eventData.path)
 				delete this.app[registerPath]
 			}
-
+			
 			const microserviceConfig = this.app.microservices[serviceConfig.key]
 			// In case the config is not there we return early
 			// if (!microserviceConfig) return
@@ -173,16 +182,16 @@ export class MicroService {
 	/**
 	 * Publishes all the local services
 	 */
-	async publishServices() {
+	async publishServices () {
 		if (!this.options.publish) { return }
 		
 		const services = await this.getLocalServicesConfig()
 		await this.announceServices(services)
 		await this.registerEventListenersForServices(services)
 		
-		const queue = 'host-remote-service' //`${this.options.service}-${this.options.id}`
+		// const queue = 'host-remote-service' //`${this.options.service}-${this.options.id}`
 		
-		await this.channel.assertQueue(queue)
+		// await this.channel.assertQueue(queue)
 		
 		const replier = new RpcReplier(this.app, {
 			host: this.options.host
@@ -219,7 +228,7 @@ export class MicroService {
 					key: this.key,
 					service: this.options.service,
 					host: this.options.host,
-					path: `${name}`,
+					path: `${ name }`,
 					methods: ['find', 'get', 'create', 'patch', 'remove'],
 					events: ['created', 'updated', 'patched', 'removed']
 				}
@@ -234,24 +243,53 @@ export class MicroService {
 	 * This publishes an event with all the registered services in the app
 	 * @param services array An array of services configuration.
 	 */
-	async announceServices(services) {
+	async announceServices (services) {
 		const event = ServicesPublishedEvent.create(this.id, this.key, this.options.host, services)
 		await this.publishers.app.emitServices(event)
+	}
+	
+	async publish () {
+		await this.publishApp()
+		await this.publishServices()
 	}
 	
 	/**
 	 * Creates the needed exchange and queue for communication
 	 */
-	async publishApp() {
-		const event = HelloEvent.create(this.id, this.key, this.options.host, this.options.type)
+	async publishApp () {
+		const event = HelloEvent.create(
+			this.id,
+			this.key,
+			this.options.host,
+			this.options.type,
+			this.options.register,
+			this.options.publish
+		)
 		await this.publishers.app.emitGreet(event)
+		
+		this.greeted = true
+	}
+	
+	
+	async publishForNewcomers () {
+		const services = await this.getLocalServicesConfig()
+		const event = WelcomeEvent.create(
+			this.id,
+			this.key,
+			this.options.host,
+			this.options.type,
+			this.options.register,
+			this.options.publish,
+			services
+		)
+		await this.publishers.app.emitWelcome(event)
 	}
 	
 	private createUniqueQueue (id: string, key: string, options: InterfaceMicroServicesOptions) {
-		let queue = options?.queue || `${this.key}-service`
+		let queue = options?.queue || `${ this.key }-service`
 		const uuid = v4()
 		
-		return `${queue}-${uuid}`
+		return `${ queue }-${ uuid }`
 	}
 }
 

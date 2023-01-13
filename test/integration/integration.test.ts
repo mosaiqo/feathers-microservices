@@ -11,7 +11,7 @@ import microservices from '../../lib'
 import {v4} from 'uuid'
 import { amqpUrl, fakeConnection, closeConnections } from '../configs'
 import * as amqplib from 'amqplib'
-import { AmqpLibMock } from '../_mocks/AmqpLibMock'
+import { AmqpLibMock, clear } from '../_mocks/AmqpLibMock'
 import { AmqpFakeClient } from '../_mocks/AmqpFakeClient'
 
 let clients = []
@@ -36,9 +36,13 @@ describe('Integration test', () => {
 	})
 	
 	describe('Initialization', () => {
+		afterEach(async () => {
+			await closeConnections(clients)
+		})
 		test('is CommonJS compatible', () => {
 			assert.strictEqual(typeof require('../../lib'), 'function')
 		})
+		
 		test('without options', async () => {
 			const id = v4()
 			// given
@@ -48,12 +52,14 @@ describe('Integration test', () => {
 			expect(app.microservice).toBeTruthy()
 			expect(app.microservices).toBeTruthy()
 			// Test proper events
-			const { check } = await fakeConnection()
+			const { check, close } = await fakeConnection()
 			await check(async (events) => {
 				expect(events.length).toBe(1)
 				expect(events[0].name).toBe('HelloEvent')
 			})
+			await close()
 		})
+		
 		test('with options', async () => {
 			// given
 			const app = feathers()
@@ -76,7 +82,7 @@ describe('Integration test', () => {
 				expect(events[0].key).toBe('unique-app-name')
 				expect(events[0].data.host).toBe('my-host')
 				expect(events.length).toBe(1)
-			})
+			}, 2000)
 		})
 	})
 	
@@ -335,6 +341,9 @@ describe('Integration test', () => {
 	})
 	
 	describe('Services should be published',  () => {
+		beforeEach(async ()=> {
+			await clear()
+		})
 		test('default service is available', async () => {
 			const app = feathers().configure(microservices({
 				url: amqpUrl,
@@ -360,7 +369,7 @@ describe('Integration test', () => {
 			}))
 			app.use('/local-service', memory({}))
 			const service = app.service('local-service')
-
+			
 			expect(service).toBeTruthy()
 			expect(service.remote).toBeUndefined()
 			const { check } = await fakeConnection()
@@ -378,10 +387,10 @@ describe('Integration test', () => {
 			}))
 			app.use('/local-service', memory({}))
 			const service = app.service('local-service')
-
+			
 			expect(service).toBeTruthy()
 			expect(service.remote).toBeUndefined()
-
+			
 			// Test proper events
 			const { check } = await fakeConnection()
 			await check(async (events) => {
@@ -389,12 +398,12 @@ describe('Integration test', () => {
 				expect(events[0].name).toBe('HelloEvent')
 				expect(events[0].key).toBe('unique-app-name')
 				expect(events[0].data.host).toBe('my-host')
-
+				
 				expect(events[1].name).toBe('ServicesPublishedEvent')
 				expect(events[1].key).toBe('unique-app-name')
 				expect(events[1].data.host).toBe('my-host')
 				expect(Array.isArray(events[1].data.services)).toBeTruthy()
-				expect(events[1].data.services .length).toBe(1)
+				expect(events[1].data.services.length).toBe(1)
 			})
 		})
 		
@@ -419,10 +428,10 @@ describe('Integration test', () => {
 					service: 'service-two'
 				}))
 			localApp.use('/local-service', memory({}))
-
+			
 			const localService = localApp.service('local-service')
 			// then
-
+			
 			// Test proper events
 			const { check } = await fakeConnection()
 			await check(async (events) => {
@@ -438,7 +447,7 @@ describe('Integration test', () => {
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
 				expect(Array.isArray(currentEvent.data.services)).toBeTruthy()
-				expect(currentEvent.data.services .length).toBe(1)
+				expect(currentEvent.data.services.length).toBe(1)
 				
 				const localEvents = events.filter(e => e.key === 'app-local')
 				expect(localEvents.length).toBe(1)
@@ -448,10 +457,112 @@ describe('Integration test', () => {
 				expect(currentEvent.data.host).toBe('host-local')
 				
 				const remoteService = localApp.microservice('service-one::remote-service')
-
+				
 				expect(localService).toBeTruthy()
 				expect(remoteService).toBeTruthy()
 			})
+		})
+		
+		test('welcomes new services when they greet', async () => {
+			// given
+			const remoteApp = feathers()
+				.configure(microservices({
+					url: amqpUrl,
+					publish: true,
+					key: 'app-remote',
+					host: 'host-remote',
+					service: 'service-one'
+				}))
+			remoteApp.use('/remote-service', memory({}))
+			
+			const localApp = feathers()
+				.configure(microservices({
+					url: amqpUrl,
+					register: true,
+					key: 'app-local',
+					host: 'host-local',
+					service: 'service-two'
+				}))
+			localApp.use('/local-service', memory({}))
+			const localService = localApp.service('local-service')
+			// then
+			
+			// Test proper events
+			const { check } = await fakeConnection()
+			await check(async (events) => {
+				expect(events.length).toBe(3)
+				const remoteEvents = events.filter(e => e.key === 'app-remote')
+				expect(remoteEvents.length).toBe(2)
+				const localEvents = events.filter(e => e.key === 'app-local')
+				expect(localEvents.length).toBe(1)
+				const otherRemoteEvents = events.filter(e => e.key === 'app-other-remote')
+				expect(otherRemoteEvents.length).toBe(0)
+				
+				const remoteService = localApp.microservice('service-one::remote-service')
+				expect(localService).toBeTruthy()
+				expect(remoteService).toBeTruthy()
+			}, 2000, false)
+			
+			const connection0 = await fakeConnection()
+			await connection0.check(async (events) => {
+				expect(events.length).toBe(0)
+			}, 2000, false)
+			
+			const otherRemoteApp = feathers()
+				.configure(microservices({
+					url: amqpUrl,
+					register: true,
+					key: 'app-other-remote',
+					host: 'host-other-remote',
+					service: 'service-three'
+				}))
+			otherRemoteApp.use('/other-remote-service', memory({}))
+			
+			const connection1 = await fakeConnection()
+			await connection1.check(async (events) => {
+				expect(events.length).toBe(3)
+				const remoteEvents = events.filter(e => e.key === 'app-remote')
+				const localEvents = events.filter(e => e.key === 'app-local')
+				const otherRemoteEvents = events.filter(e => e.key === 'app-other-remote')
+				
+				expect(remoteEvents.length).toBe(1)
+				expect(localEvents.length).toBe(1)
+				expect(otherRemoteEvents.length).toBe(1)
+				
+				
+				const remoteService = localApp.microservice('service-one::remote-service')
+				const localAppService = otherRemoteApp.microservice('service-one::remote-service')
+				
+				expect(localService).toBeTruthy()
+				expect(remoteService).toBeTruthy()
+				expect(localAppService).toBeTruthy()
+			}, 2000, false)
+			
+			const connection2 = await fakeConnection()
+			await connection2.check(async (events) => {
+				expect(events.length).toBe(0)
+			}, 2000, false)
+			
+			const newRemoteApp = feathers()
+				.configure(microservices({
+					url: amqpUrl,
+					register: true,
+					key: 'app-new-remote',
+					host: 'host-new-remote',
+					service: 'service-three'
+				}))
+			newRemoteApp.use('/new-remote-service', memory({}))
+			
+			const connection3 = await fakeConnection()
+			await connection3.check(async (events) => {
+				expect(events.length).toBe(4)
+				expect(Object.keys(localApp.microservices)).toStrictEqual(['app-remote', 'app-other-remote', 'app-new-remote'])
+				expect(Object.keys(remoteApp.microservices)).toStrictEqual(['app-local', 'app-other-remote', 'app-new-remote'])
+				expect(Object.keys(otherRemoteApp.microservices)).toStrictEqual(['app-remote', 'app-local', 'app-new-remote'])
+				expect(Object.keys(newRemoteApp.microservices)).toStrictEqual(['app-remote', 'app-local', 'app-other-remote'])
+			}, 2000, false)
+			
+			await clear()
 		})
 	})
 	
@@ -461,6 +572,7 @@ describe('Integration test', () => {
 			mock = new MockAdapter(axios)
 		})
 		beforeEach(async () => {
+			clear()
 			remoteApp = feathers()
 				.configure(microservices({
 					url: amqpUrl,
@@ -907,8 +1019,11 @@ describe('Integration test', () => {
 	})
 	
 	describe('Call remote service with rpc client', () => {
-		jest.setTimeout(8000)
+		jest.setTimeout(12000)
 		let remoteApp, localApp
+		beforeAll(async () => {
+			await clear()
+		})
 		beforeEach(async () => {
 			remoteApp = feathers()
 				.configure(microservices({
@@ -944,13 +1059,13 @@ describe('Integration test', () => {
 			
 			const {check} = await fakeConnection()
 			await check(async (events) => {
-				await new Promise((r) => setTimeout(r, 1000))
+				// await new Promise((r) => setTimeout(r, 1000))
 				const remoteService = localApp.microservice('service-one::remote-service')
 				expect(remoteService).toBeTruthy()
 				expect(Object.keys(localApp.microservices).length).toBe(1)
-			}, 5000)
+			}, 6000, false)
 		})
-
+		
 		test('can use find method on remote service', async () => {
 			// given
 			const data = [
@@ -966,7 +1081,6 @@ describe('Integration test', () => {
 			expect(response).toBeDefined()
 			expect(response).toEqual(data)
 		})
-		
 		
 		test('can use get method on remote service', async () => {
 			// given
