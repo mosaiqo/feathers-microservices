@@ -50,13 +50,13 @@ export class AppsConsumer implements InterfaceConsumer {
 		await this.channel.consume(this.queue, async (data) => {
 			const eventData = JSON.parse(`${Buffer.from(data.content)}`)
 			// Avoid responding to our self
-			if(eventData.key === this.key) return
-			
-			if (this.callbacks[eventData?.name]) {
-				let event
-				if (this.events[eventData?.name]) {
-					const event = this.events[eventData?.name].reconstruct(eventData)
-					this.callbacks[eventData?.name](event)
+			if(eventData.key !== this.key) {
+				if (this.callbacks[eventData?.name]) {
+					let event
+					if (this.events[eventData?.name]) {
+						const event = this.events[eventData?.name].reconstruct(eventData)
+						this.callbacks[eventData?.name](event)
+					}
 				}
 			}
 			
