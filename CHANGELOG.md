@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.15](https://github.com/mosaiqo/feathers-microservices/compare/0.0.14...0.0.15) (2023-01-13)
+
+
+### Features
+
+* unify workflows (for now) ([a816917](https://github.com/mosaiqo/feathers-microservices/commit/a8169175994e8adac19464bd4ff4145798f6b1b4))
+
 ### [0.0.14](https://github.com/mosaiqo/feathers-microservices/compare/v0.0.13...v0.0.14) (2023-01-13)
 
 
