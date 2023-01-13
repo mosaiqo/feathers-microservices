@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.17](https://github.com/mosaiqo/feathers-microservices/compare/0.0.16...0.0.17) (2023-01-13)
+
+
+### Features
+
+* add unuse for feathers 5 ([cd79a05](https://github.com/mosaiqo/feathers-microservices/commit/cd79a05f8ac8b9f8dd1aaff91240a24d1394a4ec))
+
 ### [0.0.16](https://github.com/mosaiqo/feathers-microservices/compare/0.0.15...0.0.16) (2023-01-13)
 
 
