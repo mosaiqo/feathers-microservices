@@ -6,79 +6,102 @@ on:
       - "*.*.*"
 
 jobs:
-  build:
-    name: Build Package
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup Node.js
-        uses: actions/setup-node@v1
+      - uses: actions/checkout@v2
+
+      - name: Setup Node.js ⚙️
+        uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          # choose node.js version to use
+          node-version: 16
 
       - uses: c-hive/gha-yarn-cache@v2
 
       # Install required deps for action
-      - name: Install Dependencies
-        run: yarn install
+      - name: Install Dependencies 📦
+        run: yarn install --dev --frozen-lockfile
 
-      - name: Build
+      # Finally, run our tests
+      - name: Run the tests 🧪
+        run: yarn test
+  build:
+    name: Build Package
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 📥
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js ⚙️
+        uses: actions/setup-node@v3
+        with:
+          # choose node.js version to use
+          node-version: 16
+          # cache deps for yarn
+          cache: yarn
+
+      - uses: c-hive/gha-yarn-cache@v2
+
+      # Install required deps for action
+      - name: Install Dependencies 📦
+        run: yarn install --dev --frozen-lockfile
+
+      - name: Build 👷🏻‍
         run: yarn compile
 
-      - name: Archive production artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: dist
-          path: dist
-
-
-  publish:
-    needs: build
-    name: Publish Package
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup Node.js
-        uses: actions/setup-node@v1
-        with:
-          always-auth: true
-          node-version: "16"
-
-      - name: Download a artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: dist
-
-      - name: Add NPM token to .npmrc
+      - name: Add NPM token to .npmrc 🔐
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
-      - name: Publish to registry
+      - name: Publish to registry 📤
         run: yarn publish
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           access: "public"
 
-  release:
-    needs: publish
-    name: Release Package
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup Node.js
-        uses: actions/setup-node@v1
-        with:
-          node-version: "16"
-
-      - name: Release
+      - name: Release 📝
         uses: softprops/action-gh-release@v1
         with:
           body_path: CHANGELOG.md
           # note you'll typically need to create a personal access token
           # with permissions to create releases in the other repo
           token: ${{ secrets.GITHUB_TOKEN }}
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          # fetch all commits to get last updated time or other git log info
+          fetch-depth: 0
+
+      - name: Setup Node.js ⚙️
+        uses: actions/setup-node@v3
+        with:
+          # choose node.js version to use
+          node-version: 16
+          # cache deps for yarn
+          cache: yarn
+
+      - name: Install dependencies 📦
+        run: yarn install --dev --frozen-lockfile
+
+      # run build script
+      - name: Build VuePress site 📖
+        run: yarn docs:build
+
+      # please check out the docs of the workflow for more details
+      # @see https://github.com/crazy-max/ghaction-github-pages
+      - name: Deploy to GitHub Pages 📤
+        uses: crazy-max/ghaction-github-pages@v2
+        with:
+          # deploy to gh-pages branch
+          target_branch: gh-pages
+          # deploy the default output dir of VuePress
+          build_dir: docs/.vuepress/dist
+        env:
+          # @see https://docs.github.com/en/actions/reference/authentication-in-a-workflow#about-the-github_token-secret
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
