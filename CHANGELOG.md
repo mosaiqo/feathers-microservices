@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.18](https://github.com/mosaiqo/feathers-microservices/compare/0.0.17...0.0.18) (2023-01-13)
+
+
+### Bug Fixes
+
+* issue that was causing timeouts on rabbitmq because of no acting messages correctly ([d8883c1](https://github.com/mosaiqo/feathers-microservices/commit/d8883c15321e0b87bdea3d1bff0bd2d64e9690a4))
+
 ### [0.0.17](https://github.com/mosaiqo/feathers-microservices/compare/0.0.16...0.0.17) (2023-01-13)
 
 
