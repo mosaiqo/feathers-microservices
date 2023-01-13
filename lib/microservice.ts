@@ -153,7 +153,7 @@ export class MicroService {
 			const service = this.app.services[registerPath]
 			if (service && service.remote) {
 				if (this.app.unuse && typeof this.app.unuse === 'function') {
-					this.app.unuse(eventData.path)
+					this.app.unuse(registerPath)
 				}
 				delete this.app[registerPath]
 			}
