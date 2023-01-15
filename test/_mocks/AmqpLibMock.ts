@@ -178,6 +178,21 @@ let exchanges = {
 	[DEFAULT_EXCHANGE_NAME]: createDirectExchange({})
 }
 
+export const getExchanges = () => {
+	return exchanges
+}
+
+export const getQueues = () => {
+	return queues
+}
+
+export const getAll = () => {
+	return {
+		exchanges,
+		queues
+	}
+}
+
 export const clear = ( ) => {
 	queues = {}
 	exchanges = {

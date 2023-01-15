@@ -13,6 +13,7 @@ export const AXIOS_HTTP_METHODS = {
 	remove: 'delete'
 }
 
+export const DEFAULT_EXCHANGE_NAME = 'microservices-services'
 export const DEFAULT_EXCHANGE_SERVICES = 'microservices-services'
 export const DEFAULT_EXCHANGE_EVENTS = 'microservices-events'
 
@@ -24,14 +25,11 @@ export enum MicroServiceType {
 export const MicroServicesOptionsDefaults: InterfaceMicroServicesOptions = {
 	url: 'amqp://localhost:5672',
 	type: MicroServiceType.RPC,
-	namespace: '',
+	namespace: null,
 	publish: false,
 	register: false,
 	debug: false,
-	exchanges: {
-		services: DEFAULT_EXCHANGE_SERVICES,
-		events: DEFAULT_EXCHANGE_EVENTS,
-	},
+	exchange: DEFAULT_EXCHANGE_NAME,
 }
 
 

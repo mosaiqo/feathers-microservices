@@ -1,67 +1,72 @@
 import * as errors from '@feathersjs/errors'
-import { InterfaceRequester } from '../types'
-import { RPCRequestEvent } from '../events'
+import { InterfaceConsumer, InterfacePublisher, InterfaceRequester } from '../types'
+import { RPCRequestEvent, RPCResponseEvent } from '../events'
 import { v4 } from 'uuid'
-import {
-	DEFAULT_PROTOCOL,
-	DEFAULT_TIMEOUT,
-	INTERNAL_REQUEST_HEADER,
-	AXIOS_HTTP_METHODS
-} from '../constants'
 
-export class RpcRequester implements InterfaceRequester{
+export class RpcRequester implements InterfaceRequester {
 	excludeParams
 	options
-	channel
-	queue
+	consumer?: InterfaceConsumer
+	publisher?: InterfacePublisher
+	topic
 	replyTo
+	namespace
+	service
+	key
 	responses
 	timeouts
-	constructor (options, channel) {
+	constructor (options, consumer: InterfaceConsumer, publisher: InterfacePublisher) {
 		this.options = options
-		this.queue = `${this.options.host}-service`
+		this.key = options.key
+		this.replyTo = options.replyTo
+		this.namespace = options.namespace
+		this.service = options.service
 		this.excludeParams = options.excludeParams
-		this.channel = channel
+		this.consumer = consumer
+		this.publisher = publisher
 		this.responses = {}
 		this.timeouts = {}
 	}
 	async init() {
-		this.replyTo = await this.channel.assertQueue('', { durable: false, exclusive: true })
-		this.channel.consume(this.replyTo.queue, async (msg) => {
-			const event = JSON.parse(`${Buffer.from(msg.content)}`)
-			const correlationId = msg.properties.correlationId
-			// How to send this to the response
+		this.generateTopic()
+		await this.consumer.onRpcResponse(async (e: RPCResponseEvent, p) => {
+			const correlationId = p.correlationId
 			if (this.responses[correlationId]) {
-				this.responses[correlationId].resolve(event)
+				this.responses[correlationId].resolve(e.toJson().data.data)
 			}
 			
 			if (this.timeouts[correlationId]) {
 				clearTimeout(this.timeouts[correlationId])
 			}
-			
-		},{ noAck: true })
+		})
 	}
+	
+	static async create(options, consumer, publisher) {
+		const instance = new RpcRequester(options, consumer, publisher)
+		await instance.init()
+		
+		return instance
+	}
+	
+	
 	async send (options) {
 		return new Promise((resolve, reject) => {
 			const defaults = { id: null, data: {}, params: {} }
 			const correlationId = v4()
-			this.responses[correlationId] = null
+			this.responses[correlationId] = 'foo' // null
 			this.timeouts[correlationId] = null
 			// @ts-ignore
 			const { type, path, id, data, params } = { ...defaults, ...options }
 			const event = RPCRequestEvent.create(
-				this.idToString(id), type, path, data, this.filterParams(params)
+				this.idToString(id),
+				this.key,
+				type,
+				path,
+				data,
+				this.filterParams(params)
 			)
 
 			// How to do this?
-			this.responses[correlationId] = null
-			
-			this.channel.sendToQueue(
-				this.queue,
-				Buffer.from(JSON.stringify(event.toJson())),
-				{ correlationId, replyTo: this.replyTo.queue }
-			)
-			
 			this.responses[correlationId] = { resolve, reject }
 			this.timeouts[correlationId] = setTimeout(() => {
 				if (this.responses[correlationId]) {
@@ -77,8 +82,15 @@ export class RpcRequester implements InterfaceRequester{
 					clearTimeout(this.timeouts[correlationId])
 				}
 			}, 5000)
-			
+			this.publisher.requestRpc(event, { topic: this.topic, correlationId, replyTo: this.replyTo })
 		})
+	}
+	
+	generateTopic() {
+		const namespace = this.namespace ? `${this.namespace}.` : ''
+		const service = this.service
+		
+		this.topic = `${namespace}${service}`
 	}
 	
 	filterParams (params) {

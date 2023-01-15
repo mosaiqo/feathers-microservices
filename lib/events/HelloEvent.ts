@@ -4,14 +4,17 @@ export class HelloEvent {
 	key
 	registrar
 	publisher
+	
+	queues = {app: null, service: null}
 	host
 	type
 	
-	private constructor (id, key, host, type, registrar, publisher) {
+	private constructor (id, key, host, type, queues, registrar, publisher) {
 		this.id = id
 		this.key = key
 		this.host = host
 		this.type = type
+		this.queues = queues
 		this.registrar = registrar
 		this.publisher = publisher
 	}
@@ -20,8 +23,8 @@ export class HelloEvent {
 		return this.key
 	}
 	
-	static create(id, key, host, type, registrar, publisher) {
-		return new HelloEvent(id, key, host, type, registrar, publisher)
+	static create(id, key, host, type, queues, registrar, publisher) {
+		return new HelloEvent(id, key, host, type, queues, registrar, publisher)
 	}
 	
 	static reconstruct(eventData) {
@@ -29,7 +32,7 @@ export class HelloEvent {
 		if (name !== this.name) {
 			throw new Error(`This is not a valid ${this.name}Event.`)
 		}
-		return new HelloEvent(id, key, data.host, data.type, data.registrar, data.publisher)
+		return new HelloEvent(id, key, data.host, data.type, data.queues, data.registrar, data.publisher)
 	}
 	
 	get data () {
@@ -37,6 +40,7 @@ export class HelloEvent {
 			key: this.key,
 			host: this.host,
 			type: this.type,
+			queues: this.queues,
 			registrar: this.registrar,
 			publisher: this.publisher
 		}

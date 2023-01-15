@@ -1,7 +1,7 @@
 import * as errors from '@feathersjs/errors'
 import { feathers } from '@feathersjs/feathers'
-import { channel } from 'diagnostics_channel'
-import { DEFAULT_EXCHANGE_EVENTS, DEFAULT_EXCHANGE_SERVICES, MicroServiceType } from '../../lib/constants'
+import { RemoteService } from '../../lib/service'
+import { MicroServiceType } from '../../lib/constants'
 import { describe, expect, jest, test } from '@jest/globals'
 import * as assert from 'assert'
 import axios from 'axios'
@@ -11,7 +11,7 @@ import microservices from '../../lib'
 import {v4} from 'uuid'
 import { amqpUrl, fakeConnection, closeConnections } from '../configs'
 import * as amqplib from 'amqplib'
-import { AmqpLibMock, clear } from '../_mocks/AmqpLibMock'
+import { AmqpLibMock, clear, getAll } from '../_mocks/AmqpLibMock'
 import { AmqpFakeClient } from '../_mocks/AmqpFakeClient'
 
 let clients = []
@@ -51,12 +51,14 @@ describe('Integration test', () => {
 			expect(app).toBeTruthy()
 			expect(app.microservice).toBeTruthy()
 			expect(app.microservices).toBeTruthy()
+			
 			// Test proper events
 			const { check, close } = await fakeConnection()
 			await check(async (events) => {
 				expect(events.length).toBe(1)
 				expect(events[0].name).toBe('HelloEvent')
 			})
+			
 			await close()
 		})
 		
@@ -142,12 +144,12 @@ describe('Integration test', () => {
 			// Test proper events
 			const { check } = await fakeConnection()
 			await check(async (events) => {
-				expect(events.length).toBe(3)
+				expect(events.length).toBe(5)
 				const localEvents = events.filter(e => e.key === 'app-local')
 				const remoteEvents = events.filter(e => e.key === 'app-remote')
 				
-				expect(localEvents.length).toBe(1)
-				expect(remoteEvents.length).toBe(2)
+				expect(localEvents.length).toBe(2)
+				expect(remoteEvents.length).toBe(3)
 				
 				let currentEvent = remoteEvents[0]
 				expect(currentEvent.name).toBe('HelloEvent')
@@ -155,6 +157,13 @@ describe('Integration test', () => {
 				expect(currentEvent.data.host).toBe('host-remote')
 				
 				currentEvent = remoteEvents[1]
+				expect(currentEvent.name).toBe('WelcomeEvent')
+				expect(currentEvent.key).toBe('app-remote')
+				expect(currentEvent.data.host).toBe('host-remote')
+				expect(Array.isArray(currentEvent.data.services)).toBeTruthy()
+				expect(currentEvent.data.services .length).toBe(1)
+				
+				currentEvent = remoteEvents[2]
 				expect(currentEvent.name).toBe('ServicesPublishedEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
@@ -162,6 +171,13 @@ describe('Integration test', () => {
 				expect(currentEvent.data.services .length).toBe(1)
 				
 				currentEvent = localEvents[0]
+				expect(currentEvent.name).toBe('WelcomeEvent')
+				expect(Array.isArray(currentEvent.data.services)).toBeTruthy()
+				expect(currentEvent.data.services .length).toBe(1)
+				expect(currentEvent.key).toBe('app-local')
+				expect(currentEvent.data.host).toBe('host-local')
+				
+				currentEvent = localEvents[1]
 				expect(currentEvent.name).toBe('HelloEvent')
 				expect(currentEvent.key).toBe('app-local')
 				expect(currentEvent.data.host).toBe('host-local')
@@ -205,27 +221,27 @@ describe('Integration test', () => {
 			// then
 
 			// Test proper events
-			const { check } = await fakeConnection()
+			const { check } = await fakeConnection({ topics: ['service-one', 'service-two', ''] })
 			await check(async (events) => {
-				expect(events.length).toBe(3)
+				expect(events.length).toBe(5)
 				const localEvents = events.filter(e => e.key === 'app-local')
 				const remoteEvents = events.filter(e => e.key === 'app-remote')
 				
-				expect(localEvents.length).toBe(1)
-				expect(remoteEvents.length).toBe(2)
+				expect(localEvents.length).toBe(2)
+				expect(remoteEvents.length).toBe(3)
 				
 				let currentEvent = remoteEvents[0]
 				expect(currentEvent.name).toBe('HelloEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
-				currentEvent = remoteEvents[1]
+				currentEvent = remoteEvents[2]
 				expect(currentEvent.name).toBe('ServicesPublishedEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
 				expect(Array.isArray(currentEvent.data.services)).toBeTruthy()
 				expect(currentEvent.data.services .length).toBe(1)
 				
-				currentEvent = localEvents[0]
+				currentEvent = localEvents[1]
 				expect(currentEvent.name).toBe('HelloEvent')
 				expect(currentEvent.key).toBe('app-local')
 				expect(currentEvent.data.host).toBe('host-local')
@@ -267,21 +283,21 @@ describe('Integration test', () => {
 			// then
 
 			// Test proper events
-			const { check } = await fakeConnection()
+			const { check } = await fakeConnection({ topics: ['service-one', 'service-two', ''] })
 			await check(async (events) => {
-				expect(events.length).toBe(3)
+				expect(events.length).toBe(5)
 				const localEvents = events.filter(e => e.key === 'app-local')
 				const remoteEvents = events.filter(e => e.key === 'app-remote')
 				
-				expect(localEvents.length).toBe(1)
-				expect(remoteEvents.length).toBe(2)
+				expect(localEvents.length).toBe(2)
+				expect(remoteEvents.length).toBe(3)
 				
 				let currentEvent = remoteEvents[0]
 				expect(currentEvent.name).toBe('HelloEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
 				
-				currentEvent = remoteEvents[1]
+				currentEvent = remoteEvents[2]
 				expect(currentEvent.name).toBe('ServicesPublishedEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
@@ -333,7 +349,7 @@ describe('Integration test', () => {
 			
 			const { check } = await fakeConnection()
 			await check(async (events) => {
-				expect(events.length).toBe(5)
+				expect(events.length).toBe(9)
 				const remoteService = localApp.microservice('service-one::remote-service')
 				expect(remoteService).toBeTruthy()
 			})
@@ -435,14 +451,14 @@ describe('Integration test', () => {
 			// Test proper events
 			const { check } = await fakeConnection()
 			await check(async (events) => {
-				expect(events.length).toBe(3)
+				expect(events.length).toBe(5)
 				const remoteEvents = events.filter(e => e.key === 'app-remote')
-				expect(remoteEvents.length).toBe(2)
+				expect(remoteEvents.length).toBe(3)
 				let currentEvent = remoteEvents[0]
 				expect(currentEvent.name).toBe('HelloEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
-				currentEvent = remoteEvents[1]
+				currentEvent = remoteEvents[2]
 				expect(currentEvent.name).toBe('ServicesPublishedEvent')
 				expect(currentEvent.key).toBe('app-remote')
 				expect(currentEvent.data.host).toBe('host-remote')
@@ -450,8 +466,8 @@ describe('Integration test', () => {
 				expect(currentEvent.data.services.length).toBe(1)
 				
 				const localEvents = events.filter(e => e.key === 'app-local')
-				expect(localEvents.length).toBe(1)
-				currentEvent = localEvents[0]
+				expect(localEvents.length).toBe(2)
+				currentEvent = localEvents[1]
 				expect(currentEvent.name).toBe('HelloEvent')
 				expect(currentEvent.key).toBe('app-local')
 				expect(currentEvent.data.host).toBe('host-local')
@@ -488,13 +504,13 @@ describe('Integration test', () => {
 			// then
 			
 			// Test proper events
-			const { check } = await fakeConnection()
+			const { check } = await fakeConnection({ topics: ['', 'service-one'] })
 			await check(async (events) => {
-				expect(events.length).toBe(3)
+				expect(events.length).toBe(5)
 				const remoteEvents = events.filter(e => e.key === 'app-remote')
-				expect(remoteEvents.length).toBe(2)
+				expect(remoteEvents.length).toBe(3)
 				const localEvents = events.filter(e => e.key === 'app-local')
-				expect(localEvents.length).toBe(1)
+				expect(localEvents.length).toBe(2)
 				const otherRemoteEvents = events.filter(e => e.key === 'app-other-remote')
 				expect(otherRemoteEvents.length).toBe(0)
 				
@@ -1025,6 +1041,7 @@ describe('Integration test', () => {
 			await clear()
 		})
 		beforeEach(async () => {
+			jest.clearAllMocks()
 			remoteApp = feathers()
 				.configure(microservices({
 					url: amqpUrl,
@@ -1050,20 +1067,21 @@ describe('Integration test', () => {
 					register: true,
 					key: 'app-local',
 					host: 'host-local',
-					service: 'service-two'
+					service: 'service-two',
+					type: MicroServiceType.RPC
 				}))
 
 			localApp.use('/local-service', memory({}))
 			const localService = localApp.service('local-service')
 			expect(localService).toBeTruthy()
 			
-			const {check} = await fakeConnection()
+			const {check} = await fakeConnection({ topics: ['service-two', 'service-one', '']})
 			await check(async (events) => {
-				// await new Promise((r) => setTimeout(r, 1000))
 				const remoteService = localApp.microservice('service-one::remote-service')
 				expect(remoteService).toBeTruthy()
+				expect(remoteService instanceof RemoteService).toBeTruthy()
 				expect(Object.keys(localApp.microservices).length).toBe(1)
-			}, 6000, false)
+			}, 600, false)
 		})
 		
 		test('can use find method on remote service', async () => {
@@ -1119,6 +1137,24 @@ describe('Integration test', () => {
 		})
 		
 		test('can use remove method on remote service', async () => {
+			remoteApp = feathers()
+				.configure(microservices({
+					url: amqpUrl,
+					publish: true,
+					key: 'app-remote',
+					host: 'host-remote',
+					service: 'service-one',
+					type: MicroServiceType.RPC
+				}))
+			remoteApp.use('/remote-service', memory({
+				store: [
+					{ id: '0', name: 'One' },
+					{ id: '1', name: 'Two' },
+					{ id: '2', name: 'Three' },
+					{ id: '3', name: 'Four' },
+					{ id: '4', name: 'Five' }
+				]
+			}))
 			// given
 			const service = localApp.microservice('service-one::remote-service')
 			const response = await service.remove(2)

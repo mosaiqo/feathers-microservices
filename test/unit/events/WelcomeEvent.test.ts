@@ -13,7 +13,7 @@ describe('WelcomeEvent', () => {
 	}
 	
 	test('can be created',  async () => {
-		const event = WelcomeEvent.create('id', 'key', 'host', 'type', true, true, [service])
+		const event = WelcomeEvent.create('id', 'key', 'host', 'type', { app: 'app', service: 'service' },true, true, [service])
 		expect(event.id).toBe('id')
 		expect(event.key).toBe('key')
 		expect(event.uuid).toBe('key')
@@ -22,28 +22,28 @@ describe('WelcomeEvent', () => {
 		expect(event.registrar).toBe(true)
 		expect(event.publisher).toBe(true)
 		expect(event.services).toStrictEqual([service])
-		expect(event.data).toStrictEqual({"host": "host", "key": "key", "type": "type", "registrar": true, "publisher": true, services: [service]})
-		expect(event.toJson()).toStrictEqual({id:'id', key:'key', name: 'WelcomeEvent', data: {"host": "host", "key": "key", "type": "type", "registrar": true, "publisher": true, services: [service]}})
+		expect(event.data).toStrictEqual({"host": "host", "key": "key", "type": "type", "registrar": true, "publisher": true,  "queues": { app: 'app', service: 'service' }, services: [service]})
+		expect(event.toJson()).toStrictEqual({id:'id', key:'key', name: 'WelcomeEvent', data: {"host": "host", "key": "key", "type": "type", "registrar": true, "publisher": true,  "queues": { app: 'app', service: 'service' }, services: [service]}})
 	})
 	
 	test('will fail on wrong event reconstruction',  async () => {
 		const reconstruction = () => {
-			WelcomeEvent.reconstruct({id:'id', key:'key', name: 'WrongEvent', data: { host:'host', type:'type', "registrar": true, "publisher": true, services: [service]}})
+			WelcomeEvent.reconstruct({id:'id', key:'key', name: 'WrongEvent', data: { host:'host', type:'type', "registrar": true, "publisher": true,  "queues": { app: 'app', service: 'service' }, services: [service]}})
 		}
 		
 		expect(reconstruction).toThrow(Error)
 	})
 	
 	test('can be reconstructed',  async () => {
-		const event = WelcomeEvent.reconstruct({id:'id', key:'key', name: 'WelcomeEvent', data: { host:'host', type:'type', "registrar": true, "publisher": true, "services": [service]}})
+		const event = WelcomeEvent.reconstruct({id:'id', key:'key', name: 'WelcomeEvent', data: { host:'host', type:'type', "registrar": true, "publisher": true,  "queues": { app: 'app', service: 'service' }, "services": [service]}})
 		expect(event.id).toBe('id')
 		expect(event.key).toBe('key')
 		expect(event.host).toBe('host')
 		expect(event.type).toBe('type')
 		expect(event.registrar).toBe(true)
 		expect(event.publisher).toBe(true)
-		expect(event.data).toStrictEqual({"host": "host", "key": "key", "type": "type", "registrar": true, "publisher": true, "services": [service]})
+		expect(event.data).toStrictEqual({"host": "host", "key": "key", "type": "type", "registrar": true, "publisher": true,  "queues": { app: 'app', service: 'service' }, "services": [service]})
 		expect(event.services).toStrictEqual([service])
-		expect(event.toJson()).toStrictEqual({id:'id', key:'key', name: 'WelcomeEvent', data: {"host": "host", "key": "key", "type": "type", "registrar": true, "publisher": true, "services": [service]}})
+		expect(event.toJson()).toStrictEqual({id:'id', key:'key', name: 'WelcomeEvent', data: {"host": "host", "key": "key", "type": "type", "registrar": true, "publisher": true,  "queues": { app: 'app', service: 'service' }, "services": [service]}})
 	})
 })

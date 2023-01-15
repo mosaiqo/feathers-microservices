@@ -7,7 +7,13 @@ export class AppsRegistrar implements InterfaceRegistrar {
 		this.app = app
 	}
 	
-	init() {}
+	async init() {}
+	
+	static async create(app) {
+		const instance = new AppsRegistrar(app)
+		await instance.init()
+		return instance
+	}
 	
 	register(event: HelloEvent) {
 		this.app.microservices[event.uuid] = event.data

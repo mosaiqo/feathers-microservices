@@ -1,1 +1,1 @@
-export { default as AppsConsumer } from './app'
+export { default as AppConsumer } from './app'

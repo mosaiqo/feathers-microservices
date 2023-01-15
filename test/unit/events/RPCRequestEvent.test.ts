@@ -3,14 +3,15 @@ import { RPCRequestEvent } from '../../../lib/events'
 
 describe('RPCRequestEvent', () => {
 	test('can be created',  async () => {
-		const event = RPCRequestEvent.create('id', 'type',  'path', { foo: 'bar' })
+		const event = RPCRequestEvent.create('id', 'key', 'type',  'path')
 		expect(event.id).toBe('id')
-		expect(event._uuid).toBeDefined()
+		expect(event.uuid).toBeDefined()
+		expect(event.key).toBe('key')
 		expect(event.type).toBe('type')
 		expect(event.path).toBe('path')
-		expect(event.internalData).toStrictEqual({ foo: 'bar'})
+		expect(event.internalData).toStrictEqual(null)
 		expect(event.data.params).toStrictEqual({})
-		expect(event.toJson()).toStrictEqual({name: 'RPCRequestEvent', id: event.uuid, data: { id:'id', data: { foo: 'bar'}, path:'path', type:'type', params: {} }})
+		expect(event.toJson()).toStrictEqual({name: 'RPCRequestEvent', id: event.uuid, key: 'key', data: { id:'id', data: null, path:'path', type:'type', params: {} }})
 	})
 	
 	test('will fail on wrong event reconstruction',  async () => {
@@ -22,13 +23,14 @@ describe('RPCRequestEvent', () => {
 	})
 	
 	test('can be reconstructed',  async () => {
-		const event = RPCRequestEvent.reconstruct({name: 'RPCRequestEvent', uuid: 'custom-id', data: {id:'id', data: { foo: 'bar'}, path:'path', type:'type' , params: {} }})
+		const event = RPCRequestEvent.reconstruct({name: 'RPCRequestEvent', key: 'key', uuid: 'custom-id', data: {id:'id', data: { foo: 'bar'}, path:'path', type:'type' , params: {} }})
 		expect(event.id).toBe('id')
-		expect(event._uuid).toBe('custom-id')
+		expect(event.uuid).toBe('custom-id')
+		expect(event.key).toBe('key')
 		expect(event.type).toBe('type')
 		expect(event.path).toBe('path')
 		expect(event.internalData).toStrictEqual({ foo: 'bar'})
 		expect(event.data).toStrictEqual({ id:'id', data: { foo: 'bar'}, path:'path', type:'type', params: {}} )
-		expect(event.toJson()).toStrictEqual({name: 'RPCRequestEvent', id: 'custom-id', data: { id:'id', data: { foo: 'bar'}, path:'path', type:'type', params: {} }})
+		expect(event.toJson()).toStrictEqual({name: 'RPCRequestEvent', id: 'custom-id', key: 'key', data: { id:'id', data: { foo: 'bar'}, path:'path', type:'type', params: {} }})
 	})
 })

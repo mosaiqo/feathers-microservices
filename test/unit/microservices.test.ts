@@ -3,13 +3,18 @@ import { feathers } from '@feathersjs/feathers'
 import { describe, expect, jest, test } from '@jest/globals'
 import * as amqplib from 'amqplib'
 import memory from 'feathers-memory'
-import { AmqpLibMock } from '../_mocks/AmqpLibMock'
+import { AmqpLibMock, getAll, clear } from '../_mocks/AmqpLibMock'
 import { AmqpClient } from '../../lib/clients'
 import { ServicesPublishedEvent, HelloEvent } from '../../lib/events'
 import { HttpRequester } from '../../lib/requesters/http'
 import { RemoteService } from '../../lib/service'
 import microservices from '../../lib'
-import { DEFAULT_EXCHANGE_EVENTS, DEFAULT_EXCHANGE_SERVICES, MicroServiceType } from '../../lib/constants'
+import {
+	DEFAULT_EXCHANGE_EVENTS,
+	DEFAULT_EXCHANGE_NAME,
+	DEFAULT_EXCHANGE_SERVICES,
+	MicroServiceType
+} from '../../lib/constants'
 import { MicroService } from '../../lib/microservice'
 import { amqpUrl, fakeConnection } from '../configs'
 
@@ -40,6 +45,8 @@ describe('Feathers plugin', () => {
 		
 		expect(m instanceof MicroService).toBeTruthy()
 		expect(m.queue).toBeDefined()
+		expect(m.service).toBeDefined()
+		expect(m.namespace).toBeDefined()
 		expect(m.key).toBeDefined()
 		expect(m.id).toBeDefined()
 		
@@ -59,16 +66,13 @@ describe('Feathers plugin', () => {
 		expect(m.options.register).toBe(false)
 		
 		expect(m.options.namespace).toBeDefined()
-		expect(m.options.namespace).toBe('')
+		expect(m.options.namespace).toBe(null)
 		expect(m.options.url).toBeDefined()
 		expect(m.options.url).toBe(amqpUrl)
 		expect(m.options.type).toBeDefined()
 		expect(m.options.type).toBe(MicroServiceType.RPC)
-		expect(m.options.exchanges).toBeDefined()
-		expect(m.options.exchanges).toStrictEqual({
-			services: DEFAULT_EXCHANGE_SERVICES,
-			events: DEFAULT_EXCHANGE_EVENTS
-		})
+		expect(m.options.exchange).toBeDefined()
+		expect(m.options.exchange).toBe(DEFAULT_EXCHANGE_NAME)
 	})
 	
 	test('host config is required if type is http', async () => {
@@ -84,26 +88,23 @@ describe('Feathers plugin', () => {
 	})
 	
 	test('specific config can be defined', async () => {
+		await clear()
 		const app = feathers()
 		const m = await (microservices({
 			queue: 'test-queue',
 			key: 'unique-key',
+			service: 'unique-key',
 			id: 'unique-id',
 			host: 'custom-host',
 			namespace: 'custom-namespace',
 			url: amqpUrl,
-			type: MicroServiceType.HTTP,
+			type: MicroServiceType.RPC,
 			publish: true,
 			register: true,
-			exchanges: {
-				services: 'custom-exchange-for-services',
-				events: 'custom-exchange-for-events'
-			}
+			exchange: 'custom-exchange-for-services'
 		}))(app)
 		
 		expect(m instanceof MicroService).toBeTruthy()
-		expect(m.queue).toBeDefined()
-		expect(m.queue.includes('test-queue')).toBeTruthy()
 		expect(m.key).toBeDefined()
 		expect(m.key).toBe('unique-key')
 		expect(m.id).toBeDefined()
@@ -120,12 +121,29 @@ describe('Feathers plugin', () => {
 		expect(m.options.url).toBeDefined()
 		expect(m.options.url).toBe(amqpUrl)
 		expect(m.options.type).toBeDefined()
-		expect(m.options.type).toBe(MicroServiceType.HTTP)
-		expect(m.options.exchanges).toBeDefined()
-		expect(m.options.exchanges).toStrictEqual({
-			services: 'custom-exchange-for-services',
-			events: 'custom-exchange-for-events'
-		})
+		expect(m.options.type).toBe(MicroServiceType.RPC)
+		expect(m.options.exchange).toBeDefined()
+		expect(m.options.exchange).toBe('custom-exchange-for-services')
+		
+		expect(m.queue).toBeDefined()
+		expect(m.queue).toBe('custom-namespace.unique-key.unique-id')
+		expect(m.exchange).toBeDefined()
+		expect(m.exchange).toBe('custom-namespace.custom-exchange-for-services')
+		
+		await new Promise((r) => setTimeout(r, 1000))
+		const {exchanges, queues} = getAll()
+		const exchangesKeys = Object.keys(exchanges)
+		const queuesKeys = Object.keys(queues)
+		expect(exchangesKeys.length).toBe(2)
+		expect(queuesKeys.length).toBe(1)
+		expect(exchangesKeys).toEqual([
+			'',
+			'custom-namespace.custom-exchange-for-services'
+		])
+		expect(queuesKeys).toEqual([
+			'custom-namespace.unique-key.unique-id'
+		])
+		
 	})
 	
 	test('creates helper functions for microservices correctly', async () => {
@@ -141,10 +159,7 @@ describe('Feathers plugin', () => {
 			type: MicroServiceType.HTTP,
 			publish: true,
 			register: true,
-			exchanges: {
-				services: 'custom-exchange-for-services',
-				events: 'custom-exchange-for-events'
-			}
+			exchange: 'custom-exchange-for-services'
 		}))(app)
 		app.use('test-service', memory({}))
 		app.use('remote-service', new RemoteService('path', requester))
@@ -187,18 +202,15 @@ describe('Feathers plugin', () => {
 			url: amqpUrl,
 			type: MicroServiceType.HTTP,
 			register: true,
-			exchanges: {
-				services: 'custom-exchange-for-services',
-				events: 'custom-exchange-for-events'
-			}
+			exchange: 'custom-exchange-for-services'
 		}))(app)
 		
 		expect(m instanceof MicroService).toBeTruthy()
-		expect(m.consumers.app).toBeDefined()
-		expect(m.registrars.app).toBeDefined()
+		expect(m.consumer).toBeDefined()
+		expect(m.registrar).toBeDefined()
 
-		const event = HelloEvent.create('id', 'key', 'host', 'RPC', true, true)
-		channel.publish('custom-exchange-for-services', '', Buffer.from(JSON.stringify(event.toJson())))
+		const event = HelloEvent.create('id', 'key', 'host', 'RPC', { app: '', service: '' }, true, true)
+		channel.publish('custom-namespace.custom-exchange-for-services', 'custom-namespace', Buffer.from(JSON.stringify(event.toJson())))
 		
 		await new Promise((r) => setTimeout(r, 500))
 		expect(app.microservices[event.uuid]).toBeDefined()
@@ -226,10 +238,7 @@ describe('Feathers plugin', () => {
 			type: MicroServiceType.HTTP,
 			publish: true,
 			register: true,
-			exchanges: {
-				services: 'custom-exchange-for-services',
-				events: 'custom-exchange-for-events'
-			}
+			exchange: 'custom-exchange-for-services'
 		}))(app)
 		app.use('test-service', memory({}))
 		
@@ -238,40 +247,16 @@ describe('Feathers plugin', () => {
 		app.use('remote-app::remote-service', new RemoteService('path', requester))
 		
 		expect(m instanceof MicroService).toBeTruthy()
-		expect(m.consumers.app).toBeDefined()
+		expect(m.consumer).toBeDefined()
 
 		const event = ServicesPublishedEvent.create('id', 'key', 'host', [serviceConfig])
-		channel.publish('custom-exchange-for-services', '', Buffer.from(JSON.stringify(event.toJson())))
+		channel.publish(
+			'custom-namespace.custom-exchange-for-services',
+			'custom-namespace.unique-key',
+			Buffer.from(JSON.stringify(event.toJson())))
+		
 		await new Promise((r) => setTimeout(r, 2000))
 		expect(app.services['remote-app::remote-service']).toBeDefined()
-	})
-	
-	test('subscribes correctly to new apps', async () => {
-		const app = feathers()
-		const m = await (microservices({
-			queue: 'test-queue-4',
-			key: 'unique-key',
-			id: 'unique-id',
-			host: 'custom-host',
-			namespace: 'custom-namespace',
-			url: amqpUrl,
-			type: MicroServiceType.HTTP,
-			register: true,
-			exchanges: {
-				services: 'custom-exchange-for-services',
-				events: 'custom-exchange-for-events'
-			}
-		}))(app)
-		
-		expect(m instanceof MicroService).toBeTruthy()
-		expect(m.consumers.app).toBeDefined()
-		expect(m.registrars.app).toBeDefined()
-
-		const event = HelloEvent.create('id', 'key', 'host', 'RPC', true, true)
-		channel.publish('custom-exchange-for-services', '', Buffer.from(JSON.stringify(event.toJson())))
-		
-		await new Promise((r) => setTimeout(r, 4000))
-		expect(app.microservices[event.uuid]).toBeDefined()
 	})
 	
 	test('publishes correctly new services', async () => {
@@ -286,14 +271,11 @@ describe('Feathers plugin', () => {
 			url: amqpUrl,
 			type: MicroServiceType.HTTP,
 			publish: true,
-			exchanges: {
-				services: 'custom-exchange-for-services',
-				events: 'custom-exchange-for-events'
-			}
+			exchange: 'custom-exchange-for-services'
 		}))(app)
 		
 		expect(m instanceof MicroService).toBeTruthy()
-		expect(m.consumers.app).toBeDefined()
+		expect(m.consumer).toBeDefined()
 		
 		await new Promise((r) => setTimeout(r, 2000))
 		expect(app.services['test-service']).toBeDefined()
@@ -324,14 +306,11 @@ describe('Feathers plugin', () => {
 			url: amqpUrl,
 			type: MicroServiceType.HTTP,
 			publish: true,
-			exchanges: {
-				services: 'custom-exchange-for-services',
-				events: 'custom-exchange-for-events'
-			}
+			exchange: 'custom-exchange-for-services'
 		}))(app)
 		
 		expect(m instanceof MicroService).toBeTruthy()
-		expect(m.consumers.app).toBeDefined()
+		expect(m.consumer).toBeDefined()
 		
 		await new Promise((r) => setTimeout(r, 2000))
 		app.service('test-service').create({ foo: 'bar' })

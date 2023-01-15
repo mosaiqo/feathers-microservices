@@ -3,7 +3,7 @@ import https from 'https'
 import axios from 'axios'
 import axiosRetry from 'axios-retry'
 import * as errors from '@feathersjs/errors'
-import { InterfaceRequester } from '../types'
+import { InterfaceConsumer, InterfacePublisher, InterfaceRequester } from '../types'
 
 import {
 	DEFAULT_PROTOCOL,
@@ -13,6 +13,8 @@ import {
 } from '../constants'
 
 export class HttpRequester implements InterfaceRequester {
+	consumer?: InterfaceConsumer
+	publisher?: InterfacePublisher
 	protocol
 	host
 	port

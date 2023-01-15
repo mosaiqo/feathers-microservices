@@ -1,48 +1,52 @@
 import * as errors from '@feathersjs/errors'
+import { AppConsumer } from '../consumers'
+import { AppsPublisher } from '../publishers'
+import { RPCRequestEvent, RPCResponseEvent } from '../events'
 
 export class RpcReplier {
 	app
-	options
-	channel
-	queue
-	constructor (app, options, channel) {
+	key
+	consumer
+	publisher
+	private constructor (app, key, consumer: AppConsumer, publisher: AppsPublisher) {
 		this.app = app
-		this.options = options
-		this.channel = channel
-		this.queue = `${this.options.host}-service`
+		this.key = key
+		this.consumer = consumer
+		this.publisher = publisher
 	}
 	
 	async init() {
-		await this.channel.assertQueue(this.queue)
-		await this.channel.consume(this.queue, async (msg) => {
-			const event = JSON.parse(`${Buffer.from(msg.content)}`)
-			const response = await this.respond(event.data)
-			this.channel.sendToQueue(
-				msg.properties.replyTo,
-				Buffer.from(JSON.stringify(response)),
-				{ correlationId: msg.properties.correlationId }
-			)
-			this.channel.ack(msg)
+		await this.consumer.onRpcRequest(async (e: RPCRequestEvent, p) => {
+			const response = await this.respond(e)
+			const event = RPCResponseEvent.create(e.id, this.key, e.type, e.path, response, e.params)
+			await this.publisher.respondRpc(event, p)
 		})
 	}
 	
-	async respond(event) {
-		const path = event.path
-		const method = event.type
-		const params = event.params
-		const id = event.id
-		const data = event.data
+	static async create(app, key, queue, channel) {
+		const instance = new RpcReplier(app, key, queue, channel)
+		await instance.init()
+		
+		return instance
+	}
+	
+	async respond(event: RPCRequestEvent) {
+		const { data } = event.toJson()
+		const path = data.path
+		const method = data.type
+		const params = data.params
+		const id = data.id
 		try {
 			const service = this.app.service(path)
 			
 			// Mapping for providing correct parameters to each method
 			const methods = {
-				find: async () => await service[method](params),
-				get: async () => await service[method](id, params),
-				create: async () => await service[method](data, params),
-				update: async() => await service[method](id, data, params),
-				patch: async () => await service[method](id, data, params),
-				remove: async () => await service[method](id,params)
+				find: async () => await service.find(params),
+				get: async () => await service.get(id, params),
+				create: async () => await service.create(data.data, params),
+				update: async() => await service.update(id, data.data, params),
+				patch: async () => await service.patch(id, data.data, params),
+				remove: async () => await service.remove(id,params)
 			}
 			return await methods[method]()
 		} catch (e) {

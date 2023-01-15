@@ -1,6 +1,6 @@
 import * as amqplib from 'amqplib'
 import { AmqpClientConnection, InterfaceAmqpClient } from '../types'
-import { DEFAULT_EXCHANGE_EVENTS, DEFAULT_EXCHANGE_SERVICES } from '../constants'
+import { DEFAULT_EXCHANGE_NAME } from '../constants'
 export class AmqpClient implements InterfaceAmqpClient {
 	url: string
 	connection: amqplib.Connection
@@ -9,10 +9,7 @@ export class AmqpClient implements InterfaceAmqpClient {
 	private constructor (url, options) {
 		this.url = url
 		this.options = {
-			exchanges: {
-				services: DEFAULT_EXCHANGE_SERVICES,
-				events: DEFAULT_EXCHANGE_EVENTS,
-			},
+			exchange: DEFAULT_EXCHANGE_NAME,
 			...options
 		}
 	}
@@ -26,8 +23,7 @@ export class AmqpClient implements InterfaceAmqpClient {
 		
 		instance.connection =  await amqplib.connect(instance.url, socketOptions)
 		instance.channel = await instance.connection.createChannel()
-		await instance.channel.assertExchange(instance.options.exchanges.services, 'fanout', { durable: false })
-		await instance.channel.assertExchange(instance.options.exchanges.events, 'fanout', { durable: false })
+		await instance.channel.assertExchange(instance.options.exchange, 'topic', { durable: false })
 		
 		return { client: instance, channel: instance.channel, connection: instance.connection }
 	}

@@ -1,26 +1,26 @@
 import { v4 } from 'uuid'
-export class RPCRequestEvent {
-	name = 'RPCRequestEvent'
+export class RPCResponseEvent {
+	name = 'RPCResponseEvent'
 	uuid
 	id
 	path
 	key
+	
 	internalData
 	params
 	type
 	
 	private constructor (id, key, type, path, data, params, uuid = null) {
-		this.key = key
 		this.uuid = uuid || v4()
 		this.id = id
+		this.key = key
 		this.path = path
 		this.internalData = data
 		this.params = params
 		this.type = type
 	}
-	
 	static create(id, key, type, path, data = null, params = {}) {
-		return new RPCRequestEvent(id, key, type, path, data, params)
+		return new RPCResponseEvent(id, key, type, path, data, params)
 	}
 	
 	static reconstruct(eventData) {
@@ -28,7 +28,7 @@ export class RPCRequestEvent {
 		if (name !== this.name) {
 			throw new Error(`This is not a valid ${this.name}Event.`)
 		}
-		return new RPCRequestEvent(data.id, key, data.type, data.path, data.data, data.params, uuid)
+		return new RPCResponseEvent(data.id, key, data.type, data.path, data.data, data.params, uuid)
 	}
 	
 	get data () {
@@ -51,4 +51,4 @@ export class RPCRequestEvent {
 	}
 }
 
-export default RPCRequestEvent
+export default RPCResponseEvent

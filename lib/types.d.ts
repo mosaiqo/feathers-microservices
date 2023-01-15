@@ -7,16 +7,18 @@ import {
 } from '@feathersjs/feathers/lib/declarations'
 import { Channel, Connection } from 'amqplib'
 import { EventEmitter } from 'events'
+import { AppConsumer } from 'lib/consumers'
+import { AppsPublisher } from 'lib/publishers'
 import { AmqpClient } from './clients'
-import { HelloEvent, ServicesPublishedEvent, WelcomeEvent } from './events'
+import { HelloEvent, RPCRequestEvent, ServicesPublishedEvent, WelcomeEvent } from './events'
 import { MicroServiceType } from './constants'
 
 export declare interface InterfaceRequester {
+	consumer?: InterfaceConsumer
+	publisher?: InterfacePublisher
 	init()
 	send (options)
-	
 	filterParams(params)
-	
 	idToString(id)
 }
 
@@ -29,14 +31,14 @@ export declare interface InterfaceMicroServicesOptions {
 	id?: string,
 	key?: string,
 	queue?: string,
-	namespace?: string,
+	namespace?: string | null,
 	url?: string,
 	register?: boolean,
 	publish?: boolean,
 	host?: string,
 	service?: string
 	name?: string
-	exchanges?: InterfaceExchanges
+	exchange?: string
 	type?: MicroServiceType
 	
 	debug?: boolean | string
@@ -89,16 +91,22 @@ export declare interface InterfaceConsumer {
 	onHello(cb?: Awaited<(event: HelloEvent) => Promise<void>>): Promise<void>
 	onWelcome(cb?: Awaited<(event: WelcomeEvent) => Promise<void>>): Promise<void>
 	onServicesPublished(cb?: Awaited<(event: any) => Promise<void>>): Promise<void>
+	onRpcRequest(cb?: Awaited<(event: any, p: any) => Promise<void>>): Promise<void>
+	onRpcResponse(cb?: Awaited<(event: any, p: any) => Promise<void>>): Promise<void>
+	onUnknownPublished(cb?: Awaited<(event: any) => Promise<void>>): Promise<void>
 }
 
 export declare interface InterfacePublisher {
 	init()
+	
+
 }
 
 export declare interface InterfacePublisher {
 	emitServices(event: ServicesPublishedEvent): Promise<void>
 	emitGreet(event: HelloEvent): Promise<void>
 	emitWelcome(event: WelcomeEvent): Promise<void>
+	requestRpc(event: RPCRequestEvent, p: any): Promise<void>
 }
 export declare interface InterfaceRegistrar {
 	init()

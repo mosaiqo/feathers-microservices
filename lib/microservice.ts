@@ -3,7 +3,14 @@ import * as errors from '@feathersjs/errors'
 import type { Entries } from 'type-fest'
 import { v4 } from 'uuid'
 
-import { ConsumerMap, InterfaceMicroServicesOptions, PublisherMap, RegistrarMap, Service } from './types'
+import {
+	ConsumerMap,
+	InterfaceConsumer,
+	InterfaceMicroServicesOptions, InterfacePublisher, InterfaceRegistrar,
+	PublisherMap,
+	RegistrarMap,
+	Service
+} from './types'
 import { MicroServicesOptionsDefaults, MicroServiceType } from './constants'
 import { AppsRegistrar } from './regristrars'
 import { HelloEvent, ServicesPublishedEvent, WelcomeEvent } from './events'
@@ -12,21 +19,23 @@ import { RpcReplier } from './repliers'
 import { Requester } from './requesters'
 import { RemoteService } from './service'
 import { AmqpClient } from './clients'
-import { AppsConsumer } from './consumers'
+import { AppConsumer } from './consumers'
 
 export class MicroService {
 	app
 	options: InterfaceMicroServicesOptions
-	consumer
+	exchange: string
+	queue: string
 	channel
 	client
 	key: string
+	service: string
+	namespace: string
 	name: string
-	queue: string
 	id: string
-	consumers: ConsumerMap = {}
-	publishers: PublisherMap = {}
-	registrars: RegistrarMap = {}
+	publisher: InterfacePublisher
+	registrar: InterfaceRegistrar
+	consumer: InterfaceConsumer
 	debug: boolean | string = false
 	greeted: boolean = false
 	/**
@@ -37,8 +46,9 @@ export class MicroService {
 	constructor (app, options?: InterfaceMicroServicesOptions) {
 		this.id = options?.id || v4()
 		this.key = options?.key || options?.host || v4()
+		this.service = options.service || this.key
+		this.namespace = options.namespace || ''
 		this.name = `${ this.key }-${ this.id }`
-		this.queue = this.createUniqueQueue(this.id, this.key, options)
 		this.debug = options?.debug
 		
 		if (options?.type === MicroServiceType.HTTP && !options?.host) {
@@ -54,10 +64,28 @@ export class MicroService {
 			...options
 		}
 		
+		this.generateQueue()
+		this.generateExchange()
 		this.createHelperFunctions(app)
 	}
 	
-	async createHelperFunctions (app) {
+	generateExchange() {
+		const namespace = this.namespace ? `${this.namespace}.` : ''
+		const name = this.options.exchange
+		
+		this.exchange = `${namespace}${name}`
+	}
+	
+	generateQueue() {
+		const namespace = this.namespace ? `${this.namespace}.` : ''
+		const service = this.service
+		const suffix = `.${this.id}`
+		
+		this.queue = `${namespace}${service}${suffix}`
+		
+	}
+	
+	createHelperFunctions (app) {
 		// Save app for later use
 		this.app = app
 		
@@ -86,6 +114,7 @@ export class MicroService {
 		await this.createConsumers()
 		await this.createPublishers()
 		await this.createRegistrars()
+		
 		await this.subscribeToNewApps()
 		await this.subscribeToNewService()
 		
@@ -94,7 +123,7 @@ export class MicroService {
 	
 	async createClient () {
 		const { channel, connection } = await AmqpClient.connect(this.options.url, {
-			exchanges: this.options.exchanges,
+			exchange: this.exchange,
 			name: this.name
 		})
 		
@@ -103,46 +132,42 @@ export class MicroService {
 	}
 	
 	async createConsumers () {
-		this.consumers.app = new AppsConsumer(this.client, this.options.exchanges.services, this.queue, this.key)
-		
-		for (const consumer of Object.values(this.consumers)) {
-			await consumer.init()
-		}
+		this.consumer = await AppConsumer.create(
+			this.client,
+			this.exchange,
+			this.queue,
+			this.key,
+			this.namespace,
+			this.service,
+			this.id
+		)
 	}
 	
 	async createPublishers () {
-		this.publishers.app = new AppsPublisher(this.client, this.options.exchanges.services, this.key)
-		
-		for (const publisher of Object.values(this.publishers)) {
-			await publisher.init()
-		}
+		this.publisher = await AppsPublisher.create(this.client, this.exchange, this.key, this.namespace)
 	}
 	
 	async createRegistrars () {
-		this.registrars.app = new AppsRegistrar(this.app)
-		
-		for (const registrar of Object.values(this.registrars)) {
-			await registrar.init()
-		}
+		this.registrar = await AppsRegistrar.create(this.app)
 	}
 	
 	async subscribeToNewApps () {
-		await this.consumers.app.onHello(async (event: HelloEvent) => {
-			this.registrars.app.register(event)
-			if (this.greeted) {
+		await this.consumer.onHello(async (event: HelloEvent) => {
+			this.registrar.register(event)
+			// if (this.greeted) {
 				await this.publishForNewcomers()
-			}
+			// }
 		})
 		
-		await this.consumers.app.onWelcome(async (event: WelcomeEvent) => {
-			this.registrars.app.register(event)
+		await this.consumer.onWelcome(async (event: WelcomeEvent) => {
+			this.registrar.register(event)
 			await this.registerServices(event?.data?.services)
 		})
 	}
 	
 	async subscribeToNewService () {
 		if (!this.options.register) { return }
-		await this.consumers.app.onServicesPublished(async (event) => {
+		await this.consumer.onServicesPublished(async (event) => {
 			await this.registerServices(event?.data?.services)
 		})
 	}
@@ -161,11 +186,18 @@ export class MicroService {
 			const microserviceConfig = this.app.microservices[serviceConfig.key]
 			// In case the config is not there we return early
 			// if (!microserviceConfig) return
-			
-			const requester = await Requester.create({
-				...microserviceConfig,
-				...serviceConfig
-			}, this.channel, microserviceConfig.type)
+			const options = {
+				config: {
+					...microserviceConfig,
+					...serviceConfig,
+				},
+				key: this.key,
+				type: microserviceConfig.type,
+				replyTo: this.queue,
+				namespace: this.namespace,
+				service: this.service
+			}
+			const requester = await Requester.create(options, this.consumer, this.publisher )
 			
 			// Register our service on the Feathers application
 			this.app.use(
@@ -186,19 +218,11 @@ export class MicroService {
 	 */
 	async publishServices () {
 		if (!this.options.publish) { return }
+		const replier = await RpcReplier.create(this.app, this.key, this.consumer, this.publisher)
 		
 		const services = await this.getLocalServicesConfig()
 		await this.announceServices(services)
 		await this.registerEventListenersForServices(services)
-		
-		// const queue = 'host-remote-service' //`${this.options.service}-${this.options.id}`
-		
-		// await this.channel.assertQueue(queue)
-		
-		const replier = new RpcReplier(this.app, {
-			host: this.options.host
-		}, this.channel)
-		await replier.init()
 	}
 	
 	/**
@@ -211,8 +235,9 @@ export class MicroService {
 			// Register event listeners for service
 			for (const event of serviceConfig.events) {
 				service.on(event, async (data) => {
+					// Todo: move this into publisher and create a specific event
 					const eventData = { path: serviceConfig.path, service: this.options.service, event: event, result: data }
-					await this.channel.publish(this.options.exchanges.events, '', Buffer.from(JSON.stringify(eventData)))
+					await this.channel.publish(this.exchange, '', Buffer.from(JSON.stringify(eventData)))
 				})
 			}
 		}
@@ -228,7 +253,7 @@ export class MicroService {
 				const serviceConfig = {
 					name,
 					key: this.key,
-					service: this.options.service,
+					service: this.service,
 					host: this.options.host,
 					path: `${ name }`,
 					methods: ['find', 'get', 'create', 'patch', 'remove'],
@@ -247,7 +272,7 @@ export class MicroService {
 	 */
 	async announceServices (services) {
 		const event = ServicesPublishedEvent.create(this.id, this.key, this.options.host, services)
-		await this.publishers.app.emitServices(event)
+		await this.publisher.emitServices(event)
 	}
 	
 	async publish () {
@@ -264,11 +289,11 @@ export class MicroService {
 			this.key,
 			this.options.host,
 			this.options.type,
+			this.queue,
 			this.options.register,
 			this.options.publish
 		)
-		await this.publishers.app.emitGreet(event)
-		
+		await this.publisher.emitGreet(event)
 		this.greeted = true
 	}
 	
@@ -280,18 +305,12 @@ export class MicroService {
 			this.key,
 			this.options.host,
 			this.options.type,
+			this.queue,
 			this.options.register,
 			this.options.publish,
 			services
 		)
-		await this.publishers.app.emitWelcome(event)
-	}
-	
-	private createUniqueQueue (id: string, key: string, options: InterfaceMicroServicesOptions) {
-		let queue = options?.queue || `${ this.key }-service`
-		const uuid = v4()
-		
-		return `${ queue }-${ uuid }`
+		await this.publisher.emitWelcome(event)
 	}
 }
 
