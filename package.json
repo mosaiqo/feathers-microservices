@@ -23,7 +23,9 @@
     "compile": "shx rm -rf dist/ && tsc",
     "prettier": "npx prettier \"**/*.ts\" --write",
     "mocha": "cross-env NODE_ENV=test mocha test/ --require ts-node/register --recursive --extension .ts --exit",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose --collect-coverage",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose --collect-coverage unit",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose --collect-coverage unit",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose --collect-coverage integration",
     "release": "standard-version -t ''",
     "docs:dev": "vuepress dev docs",
     "docs:build": "vuepress build docs"
