@@ -189,15 +189,17 @@ export class MicroService {
 			// In case the config is not there we return early
 			// if (!microserviceConfig) return
 			const options = {
-				config: {
+				remote: {
 					...microserviceConfig,
 					...serviceConfig,
 				},
-				key: this.key,
-				type: microserviceConfig.type,
-				replyTo: this.queue,
-				namespace: this.namespace,
-				service: this.service
+				current: {
+					key: this.key,
+					type: microserviceConfig.type,
+					replyTo: this.queue,
+					namespace: this.namespace,
+					service: this.service
+				}
 			}
 			const requester = await Requester.create(options, this.consumer, this.publisher )
 			const registerExternalPath = `/${ serviceConfig.service }/${ serviceConfig.path }`
