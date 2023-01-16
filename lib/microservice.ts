@@ -195,11 +195,11 @@ export class MicroService {
 				},
 				current: {
 					key: this.key,
-					type: microserviceConfig.type,
-					replyTo: this.queue,
 					namespace: this.namespace,
 					service: this.service
-				}
+				},
+				replyTo: this.queue,
+				type: microserviceConfig.type,
 			}
 			const requester = await Requester.create(options, this.consumer, this.publisher )
 			const registerExternalPath = `/${ serviceConfig.service }/${ serviceConfig.path }`

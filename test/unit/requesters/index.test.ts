@@ -58,7 +58,11 @@ describe('Requester Factory', () => {
 	
 	test('should return a rcp requester',  async () => {
 		const {channel} = await AmqpClient.connect('some-url')
-		const requester = await Requester.create({ key: 'test-key', type: 'RPC' }, consumer, publisher)
+		const requester = await Requester.create({
+			current: { key: 'test-key' },
+			remote: { service: 'remote-service' },
+			type: 'RPC'
+		}, consumer, publisher)
 		expect(requester instanceof RpcRequester).toBeTruthy()
 	})
 	

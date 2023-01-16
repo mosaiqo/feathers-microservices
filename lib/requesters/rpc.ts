@@ -17,14 +17,14 @@ export class RpcRequester implements InterfaceRequester {
 	timeouts
 	constructor (options, consumer: InterfaceConsumer, publisher: InterfacePublisher) {
 		this.options = options
+		this.replyTo = options.replyTo
+		this.excludeParams = options.excludeParams
 		
 		this.key = options.current.key
-		this.replyTo = options.current.replyTo
 		this.namespace = options.current.namespace
 		
 		this.service = options.remote.service
 		
-		this.excludeParams = options.excludeParams
 		
 		this.consumer = consumer
 		this.publisher = publisher

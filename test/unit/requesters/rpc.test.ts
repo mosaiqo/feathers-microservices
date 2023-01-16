@@ -43,7 +43,8 @@ describe.only('RpcRequester', () => {
 	
 	test('sets correct options', async () => {
 		const requester = await RpcRequester.create({
-			host: 'host-remote',
+			current: { host: 'host-remote', key: 'key' },
+			remote: { service: 'host-remote' },
 			replyTo: 'test-reply-queue'
 		}, consumer, publisher)
 		
@@ -58,7 +59,7 @@ describe.only('RpcRequester', () => {
 		const { check } = await fakeRpcResponder(
 			'test-queue',
 			{
-				exchange: 	'custom-exchange',
+				exchange: 'custom-exchange',
 				service: 'custom-service',
 				topic: 'custom-namespace.custom-service'
 			},
@@ -68,9 +69,10 @@ describe.only('RpcRequester', () => {
 		
 		const requester = await RpcRequester.create({
 				replyTo: 'custom-queue',
-				host: 'custom-host',
-				namespace: 'custom-namespace',
-				service: 'custom-service'
+				current: { host: 'custom-host', key: 'key', namespace: 'custom-namespace' },
+				remote: {
+					service: 'custom-service'
+				}
 			},
 			consumer,
 			publisher
@@ -90,11 +92,15 @@ describe.only('RpcRequester', () => {
 	test('filters out correct params based on excludedParams', async () => {
 		const requester = await RpcRequester.create({
 				replyTo: 'custom-queue',
-				key: 'custom-host',
-				host: 'custom-host',
-				namespace: 'custom-namespace',
-				service: 'custom-service',
-				excludeParams: ['bar']
+				excludeParams: ['bar'],
+				current: {
+					key: 'custom-host',
+					host: 'custom-host',
+					namespace: 'custom-namespace'
+				},
+				remote: {
+					service: 'custom-service'
+				}
 			},
 			consumer,
 			publisher
@@ -102,7 +108,7 @@ describe.only('RpcRequester', () => {
 		const { check } = await fakeRpcResponder(
 			'test-queue',
 			{
-				exchange: 	'custom-exchange',
+				exchange: 'custom-exchange',
 				service: 'custom-service',
 				topic: 'custom-namespace.custom-service'
 			},
@@ -112,7 +118,7 @@ describe.only('RpcRequester', () => {
 		const response = await requester.send({
 			type: 'find', path: 'remote-service', params: { bar: 'foo' }
 		})
-		expect(response).toStrictEqual({ "foo": "bar"})
+		expect(response).toStrictEqual({ 'foo': 'bar' })
 		expect(requester instanceof RpcRequester).toBeTruthy()
 		
 		await check((event) => {
@@ -123,10 +129,15 @@ describe.only('RpcRequester', () => {
 	test('makes correct find request', async () => {
 		const requester = await RpcRequester.create({
 				replyTo: 'custom-queue',
-				host: 'custom-host',
-				namespace: 'custom-namespace',
-				service: 'custom-service',
-				excludeParams: ['bar']
+				excludeParams: ['bar'],
+				current: {
+					host: 'custom-host',
+					key: 'key',
+					namespace: 'custom-namespace'
+				},
+				remote: {
+					service: 'custom-service'
+				}
 			},
 			consumer,
 			publisher
@@ -134,7 +145,7 @@ describe.only('RpcRequester', () => {
 		const { check } = await fakeRpcResponder(
 			'test-queue',
 			{
-				exchange: 	'custom-exchange',
+				exchange: 'custom-exchange',
 				service: 'custom-service',
 				topic: 'custom-namespace.custom-service'
 			},
@@ -155,10 +166,13 @@ describe.only('RpcRequester', () => {
 	test('makes correct get request', async () => {
 		const requester = await RpcRequester.create({
 				replyTo: 'custom-queue',
-				host: 'custom-host',
-				namespace: 'custom-namespace',
-				service: 'custom-service',
-				excludeParams: ['bar']
+				current: {
+					host: 'custom-host',
+					namespace: 'custom-namespace',
+					key: 'key'
+				},
+				remote: { service: 'custom-service' }
+				
 			},
 			consumer,
 			publisher
@@ -166,7 +180,7 @@ describe.only('RpcRequester', () => {
 		const { check } = await fakeRpcResponder(
 			'test-queue',
 			{
-				exchange: 	'custom-exchange',
+				exchange: 'custom-exchange',
 				service: 'custom-service',
 				topic: 'custom-namespace.custom-service'
 			},
@@ -189,10 +203,14 @@ describe.only('RpcRequester', () => {
 	test('makes correct update request', async () => {
 		const requester = await RpcRequester.create({
 				replyTo: 'custom-queue',
-				host: 'custom-host',
-				namespace: 'custom-namespace',
-				service: 'custom-service',
-				excludeParams: ['bar']
+				current: {
+					host: 'custom-host',
+					namespace: 'custom-namespace',
+					key: 'key'
+				},
+				remote: {
+					service: 'custom-service'
+				}
 			},
 			consumer,
 			publisher
@@ -200,7 +218,7 @@ describe.only('RpcRequester', () => {
 		const { check } = await fakeRpcResponder(
 			'test-queue',
 			{
-				exchange: 	'custom-exchange',
+				exchange: 'custom-exchange',
 				service: 'custom-service',
 				topic: 'custom-namespace.custom-service'
 			},
@@ -224,10 +242,14 @@ describe.only('RpcRequester', () => {
 	test('makes correct patch request', async () => {
 		const requester = await RpcRequester.create({
 				replyTo: 'custom-queue',
-				host: 'custom-host',
-				namespace: 'custom-namespace',
-				service: 'custom-service',
-				excludeParams: ['bar']
+				current: {
+					host: 'custom-host',
+					namespace: 'custom-namespace',
+					key: 'key'
+				},
+				remote: {
+					service: 'custom-service'
+				}
 			},
 			consumer,
 			publisher
@@ -235,7 +257,7 @@ describe.only('RpcRequester', () => {
 		const { check } = await fakeRpcResponder(
 			'test-queue',
 			{
-				exchange: 	'custom-exchange',
+				exchange: 'custom-exchange',
 				service: 'custom-service',
 				topic: 'custom-namespace.custom-service'
 			},
@@ -259,10 +281,14 @@ describe.only('RpcRequester', () => {
 	test('makes correct remove request', async () => {
 		const requester = await RpcRequester.create({
 				replyTo: 'custom-queue',
-				host: 'custom-host',
-				namespace: 'custom-namespace',
-				service: 'custom-service',
-				excludeParams: ['bar']
+				current: {
+					host: 'custom-host',
+					namespace: 'custom-namespace',
+					key: 'key'
+				},
+				remote: {
+					service: 'custom-service',
+				}
 			},
 			consumer,
 			publisher
@@ -270,7 +296,7 @@ describe.only('RpcRequester', () => {
 		const { check } = await fakeRpcResponder(
 			'test-queue',
 			{
-				exchange: 	'custom-exchange',
+				exchange: 'custom-exchange',
 				service: 'custom-service',
 				topic: 'custom-namespace.custom-service'
 			},
@@ -291,7 +317,15 @@ describe.only('RpcRequester', () => {
 	})
 	
 	test('fails for timeout after 5s', async () => {
-		const requester = await RpcRequester.create({ host: 'failed-remote' }, consumer, publisher)
+		const requester = await RpcRequester.create({
+			current: {
+				host: 'failed-remote',
+				key: 'key'
+			},
+			remote: {
+				service: 'non-existent-service'
+			}
+		}, consumer, publisher)
 		expect(requester instanceof RpcRequester).toBeTruthy()
 		
 		await requester.send({
