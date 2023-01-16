@@ -23,7 +23,7 @@ export class AmqpClient implements InterfaceAmqpClient {
 		
 		instance.connection =  await amqplib.connect(instance.url, socketOptions)
 		instance.channel = await instance.connection.createChannel()
-		await instance.channel.assertExchange(instance.options.exchange, 'topic', { durable: true })
+		await instance.channel.assertExchange(instance.options.exchange, 'topic', { durable: false })
 		
 		return { client: instance, channel: instance.channel, connection: instance.connection }
 	}
