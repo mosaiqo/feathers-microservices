@@ -95,7 +95,6 @@ describe('Feathers plugin', () => {
 		await clear()
 		const app = feathers()
 		const m = await (microservices({
-			queue: 'test-queue',
 			key: 'unique-key',
 			service: 'unique-key',
 			id: 'unique-id',
@@ -154,7 +153,6 @@ describe('Feathers plugin', () => {
 		const requester = new HttpRequester({})
 		const app = feathers()
 		const m = await (microservices({
-			queue: 'test-queue-1',
 			key: 'unique-key',
 			id: 'unique-id',
 			host: 'custom-host',
@@ -198,7 +196,6 @@ describe('Feathers plugin', () => {
 	test('subscribes correctly to new apps', async () => {
 		const app = feathers()
 		const m = await (microservices({
-			queue: 'test-queue-2',
 			key: 'unique-key',
 			id: 'unique-id',
 			host: 'custom-host',
@@ -233,7 +230,6 @@ describe('Feathers plugin', () => {
 		}
 		const app = feathers()
 		const m = await (microservices({
-			queue: 'test-queue-3',
 			key: 'unique-key',
 			id: 'unique-id',
 			host: 'custom-host',
@@ -283,7 +279,6 @@ describe('Feathers plugin', () => {
 			}
 		})
 		const m = await (microservices({
-			queue: 'test-queue-1',
 			key: 'unique-key',
 			id: 'unique-id',
 			host: 'custom-host',
@@ -334,13 +329,9 @@ describe('Feathers plugin', () => {
 			methods: ['find', 'get', 'create', 'patch', 'remove'],
 			events: ['created', 'updated', 'patched', 'removed']
 		}
-		const requester = new HttpRequester({
-			host: serviceConfig.host
-		})
 		const app = feathers()
 		
 		const m = await (microservices({
-			queue: 'test-queue-1',
 			key: 'unique-key',
 			id: 'unique-id',
 			host: 'custom-host',
@@ -428,7 +419,6 @@ describe('Feathers plugin', () => {
 		}
 		const app = feathers()
 		const m = await (microservices({
-			queue: 'test-queue-1',
 			key: 'unique-key',
 			id: 'unique-id',
 			host: 'custom-host',
@@ -493,7 +483,6 @@ describe('Feathers plugin', () => {
 		const app = feathers()
 		app.use('test-service', memory({}))
 		const m = await (microservices({
-			queue: 'test-queue-5',
 			key: 'unique-key',
 			id: 'unique-id',
 			host: 'custom-host',
@@ -528,7 +517,6 @@ describe('Feathers plugin', () => {
 		const app = feathers()
 		app.use('test-service', memory({}))
 		const m = await (microservices({
-			queue: 'test-queue-6',
 			key: 'unique-key',
 			id: 'unique-id',
 			host: 'custom-host',
