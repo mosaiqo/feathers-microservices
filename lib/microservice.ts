@@ -200,8 +200,11 @@ export class MicroService {
 				service: this.service
 			}
 			const requester = await Requester.create(options, this.consumer, this.publisher )
+			const registerExternalPath = `/${ serviceConfig.service }/${ serviceConfig.path }`
 			
 			// Register our service on the Feathers application
+			this.app.use(registerExternalPath, new RemoteService(serviceConfig.path, requester))
+			
 			this.app.use(
 				registerPath,
 				new RemoteService(serviceConfig.path, requester)
