@@ -30,6 +30,7 @@ export class MicroService {
 	client
 	key: string
 	service: string
+	host: string
 	namespace: string
 	name: string
 	id: string
@@ -47,8 +48,9 @@ export class MicroService {
 		this.id = options?.id || v4()
 		this.key = options?.key || options?.host || v4()
 		this.service = options.service || this.key
+		this.host = options.host || this.key
 		this.namespace = options.namespace || ''
-		this.name = `${ this.key }-${ this.id }`
+		this.name = `${ this.host }-${ this.id }`
 		this.debug = options?.debug
 		
 		if (options?.type === MicroServiceType.HTTP && !options?.host) {
