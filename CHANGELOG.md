@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.25](https://github.com/mosaiqo/feathers-microservices/compare/0.0.24...0.0.25) (2023-01-16)
+
+
+### Bug Fixes
+
+* tests for RPCRequester ([b7c5816](https://github.com/mosaiqo/feathers-microservices/commit/b7c5816791d9608d0b0a9138a027f4ea41fbb048))
+
 ### [0.0.24](https://github.com/mosaiqo/feathers-microservices/compare/0.0.23...0.0.24) (2023-01-16)
 
 
