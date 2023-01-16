@@ -234,7 +234,7 @@ export class MicroService {
 			}
 			
 			if (isPublic) {
-				registerPath = `/${ serviceConfig.service }/${ serviceConfig.path }`
+				registerPath = `${ serviceConfig.service }/${ serviceConfig.path }`
 			}
 			
 			
