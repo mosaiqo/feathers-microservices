@@ -195,13 +195,7 @@ export class MicroService {
 	async registerServices (services) {
 		for (const serviceConfig of services) {
 			let registerPath = `${ serviceConfig.service }::${ serviceConfig.path }`
-			const service = this.app.services[registerPath]
-			if (service && service.remote) {
-				if (this.app.unuse && typeof this.app.unuse === 'function') {
-					this.app.unuse(registerPath)
-				}
-				delete this.app[registerPath]
-			}
+			
 			
 			const microserviceConfig = this.app.microservices[serviceConfig.key]
 			// In case the config is not there we return early
@@ -241,6 +235,15 @@ export class MicroService {
 			
 			if (isPublic) {
 				registerPath = `/${ serviceConfig.service }/${ serviceConfig.path }`
+			}
+			
+			
+			const service = this.app.services[registerPath]
+			if (service && service.remote) {
+				if (this.app.unuse && typeof this.app.unuse === 'function') {
+					this.app.unuse(registerPath)
+				}
+				delete this.app[registerPath]
 			}
 			
 			this.app.use(
