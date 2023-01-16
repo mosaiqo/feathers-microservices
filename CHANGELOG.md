@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.27](https://github.com/mosaiqo/feathers-microservices/compare/0.0.26...0.0.27) (2023-01-16)
+
+
+### Bug Fixes
+
+* issue that was causing app to break if microservice was already registered ([9da24ea](https://github.com/mosaiqo/feathers-microservices/commit/9da24eab9b950e186c758965ce737b1eaf1e2487))
+
 ### [0.0.26](https://github.com/mosaiqo/feathers-microservices/compare/0.0.25...0.0.26) (2023-01-16)
 
 
