@@ -98,6 +98,7 @@ export class RpcRequester implements InterfaceRequester {
 	}
 	
 	filterParams (params) {
+		params.provider = 'remote'
 		if (!this.excludeParams) { return params }
 		
 		const result = { ...params }

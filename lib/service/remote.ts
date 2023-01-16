@@ -1,14 +1,19 @@
+import { ServiceInterface } from '@feathersjs/feathers'
 import makeDebug from 'debug'
 import errorHandler from '../error-handler'
 
 const debug = makeDebug('feathers-http-distributed:service')
 
-export class RemoteService<Service> {
+export class RemoteService<Service> implements ServiceInterface {
 	path
 	requester
 	remote
+	isPublic
+	options
 	
-	constructor (path, requester) {
+	constructor (path, requester, options = {}) {
+		this.options = { public: false, ...options }
+		this.isPublic = this.options?.public || false
 		this.path = path
 		this.requester = requester
 		this.remote = true

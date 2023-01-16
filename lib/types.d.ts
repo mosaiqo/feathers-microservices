@@ -40,7 +40,7 @@ export declare interface InterfaceMicroServicesOptions {
 	name?: string
 	exchange?: string
 	type?: MicroServiceType
-	
+	public?: boolean | any
 	debug?: boolean | string
 }
 declare module "@feathersjs/feathers" {

@@ -2,10 +2,12 @@ import * as errors from '@feathersjs/errors'
 import { feathers } from '@feathersjs/feathers'
 import { describe, expect, jest, test } from '@jest/globals'
 import * as amqplib from 'amqplib'
+import axios from 'axios'
+import MockAdapter from 'axios-mock-adapter'
 import memory from 'feathers-memory'
 import { AmqpLibMock, getAll, clear } from '../_mocks/AmqpLibMock'
 import { AmqpClient } from '../../lib/clients'
-import { ServicesPublishedEvent, HelloEvent } from '../../lib/events'
+import { ServicesPublishedEvent, HelloEvent, WelcomeEvent } from '../../lib/events'
 import { HttpRequester } from '../../lib/requesters/http'
 import { RemoteService } from '../../lib/service'
 import microservices from '../../lib'
@@ -23,12 +25,14 @@ jest.mock('amqplib', () => ({
 }))
 
 describe('Feathers plugin', () => {
-	let channel
+	let channel, mock
 	beforeAll(async () => {
 		const client = await AmqpClient.connect(amqpUrl)
 		channel = client.channel
+		mock = new MockAdapter(axios)
 	})
 	beforeEach(async () => {
+		mock.reset()
 		jest.clearAllMocks()
 	})
 	
@@ -257,6 +261,232 @@ describe('Feathers plugin', () => {
 		
 		await new Promise((r) => setTimeout(r, 2000))
 		expect(app.services['remote-app::remote-service']).toBeDefined()
+	})
+	
+	test('by default remote services are not publicly available', async () => {
+		mock.onGet('http://host-remote/remote-service')
+			.reply(200, {})
+		
+		const serviceConfig = {
+			name: 'service-1',
+			key: 'key',
+			service: 'remote-app',
+			host: 'host-remote',
+			path: 'remote-service',
+			methods: ['find', 'get', 'create', 'patch', 'remove'],
+			events: ['created', 'updated', 'patched', 'removed']
+		}
+		const app = feathers()
+		app.hooks({
+			before: {
+				all: (h) => console.log(h.service.remote, h.service.isPublic)
+			}
+		})
+		const m = await (microservices({
+			queue: 'test-queue-1',
+			key: 'unique-key',
+			id: 'unique-id',
+			host: 'custom-host',
+			namespace: 'custom-namespace',
+			url: amqpUrl,
+			type: MicroServiceType.HTTP,
+			publish: true,
+			register: true,
+			exchange: 'custom-exchange-for-services',
+			public: false
+		}))(app)
+		app.use('test-service', memory({}))
+		
+		const event = WelcomeEvent.create(
+			'id', 'key', 'host', MicroServiceType.HTTP, { app: '', service: '' }, true, true,
+			[serviceConfig]
+		)
+		channel.publish('custom-namespace.custom-exchange-for-services', 'custom-namespace', Buffer.from(JSON.stringify(event.toJson())))
+		
+		await new Promise((r) => setTimeout(r, 500))
+		expect(app.microservices[event.uuid]).toBeDefined()
+		
+		// app.use('remote-app::remote-service', new RemoteService(serviceConfig.path, requester))
+		
+		const service = app.service('test-service')
+		// app.service('other-service')
+		const fail = () => app.service('remote-app::remote-service')
+		expect(app.services['remote-app::remote-service']).toBeDefined()
+		// expect(app.services['remote-app/remote-service']).toBeUndefined()
+		
+		expect(m instanceof MicroService).toBeTruthy()
+		expect(m.app.microservices).toBeDefined()
+		expect(m.app.microservice).toBeDefined()
+		expect(service).toBeDefined()
+		expect(fail).toThrow(Error)
+	})
+	
+	test('all remote services can be set to be publicly available', async () => {
+		mock.onGet('http://host-remote/remote-service')
+			.reply(200, {})
+		
+		const serviceConfig = {
+			name: 'service-1',
+			key: 'key',
+			service: 'remote-app',
+			host: 'host-remote',
+			path: 'remote-service',
+			methods: ['find', 'get', 'create', 'patch', 'remove'],
+			events: ['created', 'updated', 'patched', 'removed']
+		}
+		const requester = new HttpRequester({
+			host: serviceConfig.host
+		})
+		const app = feathers()
+		
+		const m = await (microservices({
+			queue: 'test-queue-1',
+			key: 'unique-key',
+			id: 'unique-id',
+			host: 'custom-host',
+			namespace: 'custom-namespace',
+			url: amqpUrl,
+			type: MicroServiceType.HTTP,
+			publish: true,
+			register: true,
+			exchange: 'custom-exchange-for-services',
+			public: true // ["*"]
+		}))(app)
+		app.use('test-service', memory({}))
+		
+		const event = WelcomeEvent.create(
+			'id', 'key', 'host', MicroServiceType.HTTP, { app: '', service: '' }, true, true,
+			[serviceConfig]
+		)
+		channel.publish('custom-namespace.custom-exchange-for-services', 'custom-namespace', Buffer.from(JSON.stringify(event.toJson())))
+		
+		await new Promise((r) => setTimeout(r, 500))
+		expect(app.microservices[event.uuid]).toBeDefined()
+		
+		// app.use('remote-app::remote-service', new RemoteService(serviceConfig.path, requester))
+		
+		const service = app.service('test-service')
+		// app.service('other-service')
+		// const fail = () => app.service('remote-app::remote-service')
+		expect(app.services['remote-app/remote-service']).toBeDefined()
+		expect(app.services['remote-app::remote-service']).toBeUndefined()
+		
+		expect(m instanceof MicroService).toBeTruthy()
+		expect(m.app.microservices).toBeDefined()
+		expect(m.app.microservice).toBeDefined()
+		expect(service).toBeDefined()
+		
+		await app.service('remote-app::remote-service').find({})
+		
+	})
+	
+	test('certain remote services can be set to be publicly available', async () => {
+		mock.onGet('http://host-remote-1/remote-service-1')
+			.reply(200, {})
+		
+		mock.onGet('http://host-remote-2/remote-service-1')
+			.reply(200, {})
+		
+		mock.onGet('http://host-remote-2/remote-service-2')
+			.reply(200, {})
+		
+		const serviceConfigs = {
+			remoteApp1: [{
+				name: 'service-1',
+				key: 'key-1',
+				service: 'remote-app-1',
+				host: 'host-remote-1',
+				path: 'remote-service-1',
+				methods: ['find', 'get', 'create', 'patch', 'remove'],
+				events: ['created', 'updated', 'patched', 'removed']
+			}, {
+				name: 'service-2',
+				key: 'key-1',
+				service: 'remote-app-1',
+				host: 'host-remote-1',
+				path: 'remote-service-2',
+				methods: ['find', 'get', 'create', 'patch', 'remove'],
+				events: ['created', 'updated', 'patched', 'removed']
+			}],
+			remoteApp2: [{
+				name: 'service-1',
+				key: 'key-2',
+				service: 'remote-app-2',
+				host: 'host-remote-2',
+				path: 'remote-service-1',
+				methods: ['find', 'get', 'create', 'patch', 'remove'],
+				events: ['created', 'updated', 'patched', 'removed']
+			}, {
+				name: 'service-2',
+				key: 'key-2',
+				service: 'remote-app-2',
+				host: 'host-remote-2',
+				path: 'remote-service-2',
+				methods: ['find', 'get', 'create', 'patch', 'remove'],
+				events: ['created', 'updated', 'patched', 'removed']
+			}]
+		}
+		const app = feathers()
+		const m = await (microservices({
+			queue: 'test-queue-1',
+			key: 'unique-key',
+			id: 'unique-id',
+			host: 'custom-host',
+			namespace: 'custom-namespace',
+			url: amqpUrl,
+			type: MicroServiceType.HTTP,
+			publish: true,
+			register: true,
+			exchange: 'custom-exchange-for-services',
+			public: [{
+				service: 'remote-app-1',
+				paths: ['remote-service-1']
+			},
+				{
+				service: 'remote-app-2',
+				paths: ['*']
+			}]
+		}))(app)
+		app.use('test-service', memory({}))
+		
+		const events =  [
+			WelcomeEvent.create(
+			'id', 'key-1', 'host-remote-1', MicroServiceType.HTTP, { app: '', service: '' }, true, true,
+			serviceConfigs.remoteApp1
+			),
+			WelcomeEvent.create(
+			'id', 'key-2', 'host-remote-2', MicroServiceType.HTTP, { app: '', service: '' }, true, true,
+			serviceConfigs.remoteApp2
+			)
+		]
+		for (const event of events) {
+			channel.publish('custom-namespace.custom-exchange-for-services', 'custom-namespace', Buffer.from(JSON.stringify(event.toJson())))
+		}
+		
+		await new Promise((r) => setTimeout(r, 500))
+		for (const event of events) {
+			expect(app.microservices[event.uuid]).toBeDefined()
+		}
+		const service = app.service('test-service')
+		
+		expect(app.services['remote-app-1/remote-service-1']).toBeDefined()
+		expect(app.services['remote-app-1::remote-service-1']).toBeUndefined()
+		expect(app.services['remote-app-1/remote-service-2']).toBeUndefined()
+		expect(app.services['remote-app-1::remote-service-2']).toBeDefined()
+		
+		expect(app.services['remote-app-2/remote-service-1']).toBeDefined()
+		expect(app.services['remote-app-2::remote-service-1']).toBeUndefined()
+		expect(app.services['remote-app-2/remote-service-2']).toBeDefined()
+		expect(app.services['remote-app-2::remote-service-2']).toBeUndefined()
+		
+		
+		expect(m instanceof MicroService).toBeTruthy()
+		expect(m.app.microservices).toBeDefined()
+		expect(m.app.microservice).toBeDefined()
+		expect(service).toBeDefined()
+		
+		await app.service('remote-app-1/remote-service-1').find({})
+		
 	})
 	
 	test('publishes correctly new services', async () => {

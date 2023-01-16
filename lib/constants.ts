@@ -29,6 +29,7 @@ export const MicroServicesOptionsDefaults: InterfaceMicroServicesOptions = {
 	publish: false,
 	register: false,
 	debug: false,
+	public: false,
 	exchange: DEFAULT_EXCHANGE_NAME,
 }
 

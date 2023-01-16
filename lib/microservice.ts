@@ -39,6 +39,7 @@ export class MicroService {
 	consumer: InterfaceConsumer
 	debug: boolean | string = false
 	greeted: boolean = false
+	
 	/**
 	 * This will create the communications channels for the microservices
 	 * @param app
@@ -66,24 +67,32 @@ export class MicroService {
 			...options
 		}
 		
+		if (this.options.public === false) {
+			this.options.public = []
+		}
+		
+		if (this.options.public === true) {
+			this.options.public = ['*']
+		}
+		
 		this.generateQueue()
 		this.generateExchange()
 		this.createHelperFunctions(app)
 	}
 	
-	generateExchange() {
-		const namespace = this.namespace ? `${this.namespace}.` : ''
+	generateExchange () {
+		const namespace = this.namespace ? `${ this.namespace }.` : ''
 		const name = this.options.exchange
 		
-		this.exchange = `${namespace}${name}`
+		this.exchange = `${ namespace }${ name }`
 	}
 	
-	generateQueue() {
-		const namespace = this.namespace ? `${this.namespace}.` : ''
+	generateQueue () {
+		const namespace = this.namespace ? `${ this.namespace }.` : ''
 		const service = this.service
-		const suffix = `.${this.id}`
+		const suffix = `.${ this.id }`
 		
-		this.queue = `${namespace}${service}${suffix}`
+		this.queue = `${ namespace }${ service }${ suffix }`
 		
 	}
 	
@@ -99,10 +108,19 @@ export class MicroService {
 		
 		// Override the service method to avoid calling remote services from here
 		this.app.service = function (path) {
-			const location = stripSlashes(path) || '/'
-			const current = this.services[location]
+			let location = stripSlashes(path) || '/'
+			let current = this.services[location]
+			if (!current) {
+				location = location.replace('::', '/')
+				current = this.services[location]
+			}
+			
 			if (current?.remote) {
-				throw new Error('Current service is remote `app.service(path)` is not supported. Use `app.microservice(path)` instead.')
+				if (!current.isPublic) {
+					throw new Error(`Can not find service '${ location }', seems you wanna access a microservice  Use 'app.microservice('${ location }')' instead.`)
+				} else if (path.includes('::')) {
+					path = location.replace('::', '/')
+				}
 			}
 			return this.microservice(path)
 		}.bind(this.app)
@@ -157,7 +175,7 @@ export class MicroService {
 		await this.consumer.onHello(async (event: HelloEvent) => {
 			this.registrar.register(event)
 			// if (this.greeted) {
-				await this.publishForNewcomers()
+			await this.publishForNewcomers()
 			// }
 		})
 		
@@ -176,7 +194,7 @@ export class MicroService {
 	
 	async registerServices (services) {
 		for (const serviceConfig of services) {
-			const registerPath = `${ serviceConfig.service }::${ serviceConfig.path }`
+			let registerPath = `${ serviceConfig.service }::${ serviceConfig.path }`
 			const service = this.app.services[registerPath]
 			if (service && service.remote) {
 				if (this.app.unuse && typeof this.app.unuse === 'function') {
@@ -191,7 +209,7 @@ export class MicroService {
 			const options = {
 				remote: {
 					...microserviceConfig,
-					...serviceConfig,
+					...serviceConfig
 				},
 				current: {
 					key: this.key,
@@ -199,22 +217,40 @@ export class MicroService {
 					service: this.service
 				},
 				replyTo: this.queue,
-				type: microserviceConfig.type,
+				type: microserviceConfig.type
 			}
-			const requester = await Requester.create(options, this.consumer, this.publisher )
-			const registerExternalPath = `/${ serviceConfig.service }/${ serviceConfig.path }`
 			
-			// Register our service on the Feathers application
-			this.app.use(registerExternalPath, new RemoteService(serviceConfig.path, requester))
+			const requester = await Requester.create(options, this.consumer, this.publisher)
+			let isPublic = false
+			
+			// Determine which services should be public or not
+			if (this.options.public.length > 0) {
+				if (this.options.public?.[0] === '*') {
+					isPublic = true
+				} else {
+					for (const app of this.options.public) {
+						if (
+							(serviceConfig.service === app.service && app.paths.length > 0) &&
+							(app.paths?.[0] === '*' || app.paths.includes(serviceConfig.path))
+						) {
+							isPublic = true
+						}
+					}
+				}
+			}
+			
+			if (isPublic) {
+				registerPath = `/${ serviceConfig.service }/${ serviceConfig.path }`
+			}
 			
 			this.app.use(
 				registerPath,
-				new RemoteService(serviceConfig.path, requester)
+				new RemoteService(serviceConfig.path, requester, { public: isPublic })
 				// {
 				//   // A list of all methods this service exposes externally
-				//   methods: eventData.methods,
+				//   methods: serviceConfig.methods,
 				//   // You can add additional custom events to be sent to clients here
-				//   events: eventData.events
+				//   events: serviceConfig.events
 				// }
 			)
 		}
@@ -303,7 +339,6 @@ export class MicroService {
 		await this.publisher.emitGreet(event)
 		this.greeted = true
 	}
-	
 	
 	async publishForNewcomers () {
 		const services = await this.getLocalServicesConfig()

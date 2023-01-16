@@ -28,10 +28,7 @@ export class HttpRequester implements InterfaceRequester {
 	internalRequestHeader
 	
 	constructor (options) {
-		options = {
-			...options.serviceConfig,
-			...options
-		}
+		options = { ...options, ...options?.remote }
 		this.protocol = options.protocol || DEFAULT_PROTOCOL
 		this.host = options.host
 		this.port = options.port
@@ -134,6 +131,7 @@ export class HttpRequester implements InterfaceRequester {
 	}
 	
 	filterParams (params) {
+		params.provider = 'remote'
 		if (!this.excludeParams) { return params }
 		const result = { ...params }
 		

@@ -122,7 +122,7 @@ describe.only('RpcRequester', () => {
 		expect(requester instanceof RpcRequester).toBeTruthy()
 		
 		await check((event) => {
-			expect(event.data.params).toStrictEqual({})
+			expect(event.data.params).toStrictEqual( { provider: 'remote' })
 		})
 	})
 	
@@ -159,7 +159,7 @@ describe.only('RpcRequester', () => {
 		expect(response).toStrictEqual([{ foo: 'bar' }])
 		await check((event) => {
 			expect(event.data.type).toBe('find')
-			expect(event.data.params).toStrictEqual({})
+			expect(event.data.params).toStrictEqual( { provider: 'remote' })
 		})
 	})
 	
@@ -196,7 +196,7 @@ describe.only('RpcRequester', () => {
 		await check((event) => {
 			expect(event.data.id).toBe('custom-id')
 			expect(event.data.type).toBe('get')
-			expect(event.data.params).toStrictEqual({})
+			expect(event.data.params).toStrictEqual( { provider: 'remote' })
 		})
 	})
 	
@@ -235,7 +235,7 @@ describe.only('RpcRequester', () => {
 			expect(event.data.id).toBe('custom-id')
 			expect(event.data.type).toBe('update')
 			expect(event.data.data).toStrictEqual({ foo: 'baz' })
-			expect(event.data.params).toStrictEqual({})
+			expect(event.data.params).toStrictEqual( { provider: 'remote' })
 		})
 	})
 	
@@ -274,7 +274,7 @@ describe.only('RpcRequester', () => {
 			expect(event.data.id).toBe('custom-id')
 			expect(event.data.type).toBe('patch')
 			expect(event.data.data).toStrictEqual({ foo: 'baz' })
-			expect(event.data.params).toStrictEqual({})
+			expect(event.data.params).toStrictEqual( { provider: 'remote' })
 		})
 	})
 	
@@ -312,7 +312,7 @@ describe.only('RpcRequester', () => {
 		await check((event) => {
 			expect(event.data.id).toBe('custom-id')
 			expect(event.data.type).toBe('remove')
-			expect(event.data.params).toStrictEqual({})
+			expect(event.data.params).toStrictEqual( { provider: 'remote' })
 		})
 	})
 	

@@ -16,7 +16,7 @@ export class Requester {
 			throw new Error('If RPC type selected you need to provide a consumer and a publisher instance')
 		}
 		
-		const mappedOptions = { ...options, excludeParams: ['provider', 'connection', 'resolve'] }
+		const mappedOptions = { ...options, excludeParams: ['connection', 'resolve'] }
 		
 		const requesters = {
 			'HTTP': () => new HttpRequester(mappedOptions),
