@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.28](https://github.com/mosaiqo/feathers-microservices/compare/0.0.27...0.0.28) (2023-01-16)
+
+
+### Bug Fixes
+
+* removed trailing slash on check if service exists ([6578352](https://github.com/mosaiqo/feathers-microservices/commit/6578352c8621b394b52ff990e042adc1cb6722b1))
+
 ### [0.0.27](https://github.com/mosaiqo/feathers-microservices/compare/0.0.26...0.0.27) (2023-01-16)
 
 
