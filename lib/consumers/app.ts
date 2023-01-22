@@ -1,6 +1,6 @@
 import { Channel } from 'amqplib'
 import { HelloEvent, RPCRequestEvent, RPCResponseEvent, ServicesPublishedEvent, WelcomeEvent } from '../events'
-import { InterfaceConsumer } from '../types.d'
+import { InterfaceConsumer } from '../types'
 
 export class AppConsumer implements InterfaceConsumer {
 	private channel: Channel

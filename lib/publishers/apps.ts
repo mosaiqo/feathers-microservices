@@ -1,7 +1,7 @@
 import { Channel } from 'amqplib'
 import makeDebug from 'debug'
 import { HelloEvent, ServicesPublishedEvent, WelcomeEvent } from '../events'
-import { InterfacePublisher } from '../types.d'
+import { InterfacePublisher } from '../types'
 
 const debug = makeDebug('mosaiqo-feathers-microservices')
 
