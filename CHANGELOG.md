@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file. See [standa
 
 ##  (2023-01-22)
 
+
+### Features
+
+* remove pre-push package and included in standard version script ([0c00d32](https://github.com/mosaiqo/feathers-microservices/commit/0c00d32922c244351c9993dcca85f2744e232ba2))
+
 ### [0.0.33](https://github.com/mosaiqo/feathers-microservices/compare/0.0.32...0.0.33) (2023-01-22)
 
 
