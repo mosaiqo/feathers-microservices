@@ -1,6 +1,6 @@
 {
   "name": "@mosaiqo/feathers-microservices",
-  "version": null,
+  "version": "0.0.33",
   "description": "This is my humble opinionated approach to connect different microservices written in Feathers JS.",
   "homepage": "https://mosaiqo.github.io/feathers-microservices/",
   "repository": "https://github.com/mosaiqo/feathers-microservices/",
@@ -23,7 +23,7 @@
     "compile": "shx rm -rf dist/ && tsc",
     "prettier": "npx prettier \"**/*.ts\" --write",
     "mocha": "cross-env NODE_ENV=test mocha test/ --require ts-node/register --recursive --extension .ts --exit",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose --collect-coverage unit",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --bail --useStderr --verbose unit",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose --collect-coverage --watchAll unit",
     "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose --collect-coverage unit",
     "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose --collect-coverage integration",
@@ -33,7 +33,7 @@
   },
   "standard-version": {
     "scripts": {
-      "prebump": "yarn test",
+      "prerelease": "yarn test",
       "posttag": "git push --follow-tags"
     }
   },
