@@ -7,8 +7,6 @@ import {
 } from '@feathersjs/feathers/lib/declarations'
 import { Channel, Connection } from 'amqplib'
 import { EventEmitter } from 'events'
-import { AppConsumer } from 'lib/consumers'
-import { AppsPublisher } from 'lib/publishers'
 import { AmqpClient } from './clients'
 import { HelloEvent, RPCRequestEvent, ServicesPublishedEvent, WelcomeEvent } from './events'
 import { MicroServiceType } from './constants'

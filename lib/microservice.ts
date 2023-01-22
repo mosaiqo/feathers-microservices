@@ -7,7 +7,7 @@ import {
 	InterfaceConsumer,
 	InterfaceMicroServicesOptions, InterfacePublisher, InterfaceRegistrar,
 	Service
-} from './types.d'
+} from './types'
 import { MicroServicesOptionsDefaults, MicroServiceType } from './constants'
 import { AppsRegistrar } from './regristrars'
 import { HelloEvent, ServicesPublishedEvent, WelcomeEvent } from './events'

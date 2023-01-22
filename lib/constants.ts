@@ -1,4 +1,4 @@
-import { InterfaceMicroServicesOptions } from './types.d'
+import { InterfaceMicroServicesOptions } from './types'
 
 export const DEFAULT_PROTOCOL = 'http'
 export const DEFAULT_TIMEOUT = 0
