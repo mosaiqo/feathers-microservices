@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.32](https://github.com/mosaiqo/feathers-microservices/compare/0.0.31...0.0.32) (2023-01-22)
+
+
+### Bug Fixes
+
+* some type declarations ([5fc7a75](https://github.com/mosaiqo/feathers-microservices/commit/5fc7a75a9600a830189cfc9100e5848b2ee97c07))
+
 ### [0.0.31](https://github.com/mosaiqo/feathers-microservices/compare/0.0.30...0.0.31) (2023-01-22)
 
 ### [0.0.30](https://github.com/mosaiqo/feathers-microservices/compare/0.0.29...0.0.30) (2023-01-22)
