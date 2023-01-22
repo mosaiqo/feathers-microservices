@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-##  (2023-01-22)
+### [0.0.34](https://github.com/mosaiqo/feathers-microservices/compare/0.0.33...0.0.34) (2023-01-22)
 
 
 ### Features
 
+* remove pre-push package and included in standard version script ([dfdb52f](https://github.com/mosaiqo/feathers-microservices/commit/dfdb52fe334fd7641a422a9fc8a7e943a979817e))
 * remove pre-push package and included in standard version script ([0c00d32](https://github.com/mosaiqo/feathers-microservices/commit/0c00d32922c244351c9993dcca85f2744e232ba2))
 
 ### [0.0.33](https://github.com/mosaiqo/feathers-microservices/compare/0.0.32...0.0.33) (2023-01-22)
