@@ -1,4 +1,4 @@
-import { InterfaceMicroServicesOptions } from './types'
+import { InterfaceMicroServicesOptions } from './types.d'
 import { MicroService } from './microservice'
 
 const init = function ( opts?: InterfaceMicroServicesOptions ) {

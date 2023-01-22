@@ -4,13 +4,10 @@ import type { Entries } from 'type-fest'
 import { v4 } from 'uuid'
 
 import {
-	ConsumerMap,
 	InterfaceConsumer,
 	InterfaceMicroServicesOptions, InterfacePublisher, InterfaceRegistrar,
-	PublisherMap,
-	RegistrarMap,
 	Service
-} from './types'
+} from './types.d'
 import { MicroServicesOptionsDefaults, MicroServiceType } from './constants'
 import { AppsRegistrar } from './regristrars'
 import { HelloEvent, ServicesPublishedEvent, WelcomeEvent } from './events'
