@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+##  (2023-01-22)
+
 ### [0.0.33](https://github.com/mosaiqo/feathers-microservices/compare/0.0.32...0.0.33) (2023-01-22)
 
 
