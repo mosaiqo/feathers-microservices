@@ -316,7 +316,7 @@ describe.only('RpcRequester', () => {
 		})
 	})
 	
-	test('fails for timeout after 5s', async () => {
+	test('fails for timeout after the given timeout', async () => {
 		const requester = await RpcRequester.create({
 			current: {
 				host: 'failed-remote',
@@ -324,7 +324,8 @@ describe.only('RpcRequester', () => {
 			},
 			remote: {
 				service: 'non-existent-service'
-			}
+			},
+			timeout: 100
 		}, consumer, publisher)
 		expect(requester instanceof RpcRequester).toBeTruthy()
 		

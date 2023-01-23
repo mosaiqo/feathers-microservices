@@ -15,11 +15,13 @@ export class RpcRequester implements InterfaceRequester {
 	key
 	responses
 	timeouts
+	
+	timeout
 	constructor (options, consumer: InterfaceConsumer, publisher: InterfacePublisher) {
 		this.options = options
 		this.replyTo = options.replyTo
 		this.excludeParams = options.excludeParams
-		
+		this.timeout = options?.timeout || 30000
 		this.key = options.current.key
 		this.namespace = options.current.namespace
 		
@@ -85,7 +87,7 @@ export class RpcRequester implements InterfaceRequester {
 				if (this.timeouts[correlationId]) {
 					clearTimeout(this.timeouts[correlationId])
 				}
-			}, 5000)
+			}, this.timeout)
 			this.publisher.requestRpc(event, { topic: this.topic, correlationId, replyTo: this.replyTo })
 		})
 	}
