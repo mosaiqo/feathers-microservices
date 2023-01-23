@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.35](https://github.com/mosaiqo/feathers-microservices/compare/0.0.34...0.0.35) (2023-01-23)
+
+
+### Features
+
+* add custom timeout and increase default to 30s ([189dd56](https://github.com/mosaiqo/feathers-microservices/commit/189dd568c6a3499b85daabca373a90066ba75437))
+
 ### [0.0.34](https://github.com/mosaiqo/feathers-microservices/compare/0.0.33...0.0.34) (2023-01-22)
 
 
