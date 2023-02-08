@@ -8,6 +8,7 @@ export class RpcReplier {
 	key
 	consumer
 	publisher
+	
 	private constructor (app, key, consumer: AppConsumer, publisher: AppsPublisher) {
 		this.app = app
 		this.key = key
@@ -15,7 +16,7 @@ export class RpcReplier {
 		this.publisher = publisher
 	}
 	
-	async init() {
+	async init () {
 		await this.consumer.onRpcRequest(async (e: RPCRequestEvent, p) => {
 			const response = await this.respond(e)
 			const event = RPCResponseEvent.create(e.id, this.key, e.type, e.path, response, e.params)
@@ -23,14 +24,14 @@ export class RpcReplier {
 		})
 	}
 	
-	static async create(app, key, queue, channel) {
+	static async create (app, key, queue, channel) {
 		const instance = new RpcReplier(app, key, queue, channel)
 		await instance.init()
 		
 		return instance
 	}
 	
-	async respond(event: RPCRequestEvent) {
+	async respond (event: RPCRequestEvent) {
 		const { data } = event.toJson()
 		const path = data.path
 		const method = data.type
@@ -44,9 +45,9 @@ export class RpcReplier {
 				find: async () => await service.find(params),
 				get: async () => await service.get(id, params),
 				create: async () => await service.create(data.data, params),
-				update: async() => await service.update(id, data.data, params),
+				update: async () => await service.update(id, data.data, params),
 				patch: async () => await service.patch(id, data.data, params),
-				remove: async () => await service.remove(id,params)
+				remove: async () => await service.remove(id, params)
 			}
 			return await methods[method]()
 		} catch (e) {

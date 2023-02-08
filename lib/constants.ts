@@ -31,8 +31,9 @@ export const MicroServicesOptionsDefaults: InterfaceMicroServicesOptions = {
 	debug: false,
 	public: false,
 	exchange: DEFAULT_EXCHANGE_NAME,
+	methods: ['find', 'get', 'create', 'patch', 'update', 'remove'],
+	events: ['created', 'updated', 'patched', 'removed']
 }
-
 
 export default {
 	DEFAULT_PROTOCOL,

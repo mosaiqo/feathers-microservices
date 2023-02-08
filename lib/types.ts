@@ -15,10 +15,14 @@ import { MicroServiceType } from './constants'
 export declare interface InterfaceRequester {
 	consumer?: InterfaceConsumer
 	publisher?: InterfacePublisher
-	init()
+	
+	init ()
+	
 	send (options)
-	filterParams(params)
-	idToString(id)
+	
+	filterParams (params)
+	
+	idToString (id)
 }
 
 export declare interface InterfaceExchanges {
@@ -41,11 +45,13 @@ export declare interface InterfaceMicroServicesOptions {
 	type?: MicroServiceType
 	public?: boolean | any
 	debug?: boolean | string
+	events?: Array<string>,
+	methods?: Array<string>,
 }
-declare module "@feathersjs/feathers" {
+
+declare module '@feathersjs/feathers' {
 	interface Application<Services = any, Settings = any> {
 		microservices: {},
-		
 		
 		/**
 		 * Get the Feathers service instance for a path. This will
@@ -54,7 +60,7 @@ declare module "@feathersjs/feathers" {
 		 *
 		 * @param path The name of the service.
 		 */
-		microservice<L extends keyof Services & string>(
+		microservice<L extends keyof Services & string> (
 			path: L
 		): FeathersService<this, keyof any extends keyof Services ? Service : Services[L]>
 	}
@@ -74,6 +80,7 @@ export declare interface InterfaceAmqpClient {
 	channel: Channel
 	options
 }
+
 export declare type AmqpClientConnection = {
 	client: AmqpClient,
 	channel: Channel,
@@ -81,33 +88,42 @@ export declare type AmqpClientConnection = {
 }
 
 export declare interface InterfaceConsumer {
-	init()
+	init ()
 }
 
 export declare interface InterfaceConsumer {
-	onHello(cb?: Awaited<(event: HelloEvent) => Promise<void>>): Promise<void>
-	onWelcome(cb?: Awaited<(event: WelcomeEvent) => Promise<void>>): Promise<void>
-	onServicesPublished(cb?: Awaited<(event: any) => Promise<void>>): Promise<void>
-	onRpcRequest(cb?: Awaited<(event: any, p: any) => Promise<void>>): Promise<void>
-	onRpcResponse(cb?: Awaited<(event: any, p: any) => Promise<void>>): Promise<void>
-	onUnknownPublished(cb?: Awaited<(event: any) => Promise<void>>): Promise<void>
-}
-
-export declare interface InterfacePublisher {
-	init()
+	onHello (cb?: Awaited<(event: HelloEvent) => Promise<void>>): Promise<void>
 	
-
+	onWelcome (cb?: Awaited<(event: WelcomeEvent) => Promise<void>>): Promise<void>
+	
+	onServicesPublished (cb?: Awaited<(event: any) => Promise<void>>): Promise<void>
+	
+	onRpcRequest (cb?: Awaited<(event: any, p: any) => Promise<void>>): Promise<void>
+	
+	onRpcResponse (cb?: Awaited<(event: any, p: any) => Promise<void>>): Promise<void>
+	
+	onUnknownPublished (cb?: Awaited<(event: any) => Promise<void>>): Promise<void>
 }
 
 export declare interface InterfacePublisher {
-	emitServices(event: ServicesPublishedEvent): Promise<void>
-	emitGreet(event: HelloEvent): Promise<void>
-	emitWelcome(event: WelcomeEvent): Promise<void>
-	requestRpc(event: RPCRequestEvent, p: any): Promise<void>
+	init ()
+	
 }
+
+export declare interface InterfacePublisher {
+	emitServices (event: ServicesPublishedEvent): Promise<void>
+	
+	emitGreet (event: HelloEvent): Promise<void>
+	
+	emitWelcome (event: WelcomeEvent): Promise<void>
+	
+	requestRpc (event: RPCRequestEvent, p: any): Promise<void>
+}
+
 export declare interface InterfaceRegistrar {
-	init()
-	register(event: HelloEvent)
+	init ()
+	
+	register (event: HelloEvent)
 }
 
 type Registrar = InterfaceRegistrar

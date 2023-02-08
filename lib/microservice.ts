@@ -193,7 +193,6 @@ export class MicroService {
 		for (const serviceConfig of services) {
 			let registerPath = `${ serviceConfig.service }::${ serviceConfig.path }`
 			
-			
 			const microserviceConfig = this.app.microservices[serviceConfig.key]
 			// In case the config is not there we return early
 			// if (!microserviceConfig) return
@@ -233,7 +232,6 @@ export class MicroService {
 			if (isPublic) {
 				registerPath = `${ serviceConfig.service }/${ serviceConfig.path }`
 			}
-			
 			
 			const service = this.app.services[registerPath]
 			if (service && service.remote) {
@@ -299,8 +297,8 @@ export class MicroService {
 					service: this.service,
 					host: this.options.host,
 					path: `${ name }`,
-					methods: ['find', 'get', 'create', 'patch', 'remove'],
-					events: ['created', 'updated', 'patched', 'removed']
+					methods: this.options.methods,
+					events: this.options.events
 				}
 				services.push(serviceConfig)
 			}
