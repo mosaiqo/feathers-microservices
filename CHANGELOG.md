@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.36](https://github.com/mosaiqo/feathers-microservices/compare/0.0.35...0.0.36) (2023-02-08)
+
+
+### Features
+
+* add custom events and methods ([fd446d8](https://github.com/mosaiqo/feathers-microservices/commit/fd446d823302dba48472e96c881c7fff1ce08bef))
+
 ### [0.0.35](https://github.com/mosaiqo/feathers-microservices/compare/0.0.34...0.0.35) (2023-01-23)
 
 
