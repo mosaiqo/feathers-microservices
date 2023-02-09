@@ -194,9 +194,9 @@ export class MicroService {
 	}
 	
 	async subscribeToUnknownPublishedEvents () {
-		await this.consumer.onUnknownPublished(async (event: any) => {
-			console.debug('Event is unknown', event)
-		})
+		// await this.consumer.onUnknownPublished(async (event: any) => {
+		// 	console.debug('Event is unknown', event)
+		// })
 	}
 	
 	async subscribeToNewService () {
