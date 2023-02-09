@@ -9,7 +9,7 @@ import {
 import { Channel, Connection } from 'amqplib'
 import { EventEmitter } from 'events'
 import { AmqpClient } from './clients'
-import { HelloEvent, RPCRequestEvent, ServicesPublishedEvent, WelcomeEvent } from './events'
+import { HelloEvent, RPCRequestEvent, ServiceEvent, ServicesPublishedEvent, WelcomeEvent } from './events'
 import { MicroServiceType } from './constants'
 
 export declare interface InterfaceRequester {
@@ -98,6 +98,8 @@ export declare interface InterfaceConsumer {
 	
 	onServicesPublished (cb?: Awaited<(event: any) => Promise<void>>): Promise<void>
 	
+	onServiceEvent (cb?: Awaited<(event: ServiceEvent) => Promise<void>>): Promise<void>
+	
 	onRpcRequest (cb?: Awaited<(event: any, p: any) => Promise<void>>): Promise<void>
 	
 	onRpcResponse (cb?: Awaited<(event: any, p: any) => Promise<void>>): Promise<void>
@@ -116,6 +118,8 @@ export declare interface InterfacePublisher {
 	emitGreet (event: HelloEvent): Promise<void>
 	
 	emitWelcome (event: WelcomeEvent): Promise<void>
+	
+	emitServiceEvent (event: ServiceEvent): Promise<void>
 	
 	requestRpc (event: RPCRequestEvent, p: any): Promise<void>
 }

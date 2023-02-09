@@ -1,5 +1,6 @@
 export { default as HelloEvent } from './HelloEvent'
 export { default as WelcomeEvent } from './WelcomeEvent'
+export { default as ServiceEvent } from './ServiceEvent'
 export { default as ServicesPublishedEvent } from './ServicesPublishedEvent'
 export { default as RPCRequestEvent } from './RPCRequestEvent'
 export { default as RPCResponseEvent } from './RPCResponseEvent'

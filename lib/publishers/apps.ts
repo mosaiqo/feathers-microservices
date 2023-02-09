@@ -1,6 +1,6 @@
 import { Channel } from 'amqplib'
 import makeDebug from 'debug'
-import { HelloEvent, ServicesPublishedEvent, WelcomeEvent } from '../events'
+import { HelloEvent, ServiceEvent, ServicesPublishedEvent, WelcomeEvent } from '../events'
 import { InterfacePublisher } from '../types'
 
 const debug = makeDebug('mosaiqo-feathers-microservices')
@@ -11,7 +11,7 @@ export class AppsPublisher implements InterfacePublisher {
 	private key: string
 	private namespace: string
 	
-	private constructor(channel: Channel, exchange, key, namespace) {
+	private constructor (channel: Channel, exchange, key, namespace) {
 		this.channel = channel
 		this.namespace = namespace
 		this.exchange = exchange
@@ -35,7 +35,7 @@ export class AppsPublisher implements InterfacePublisher {
 		)
 	}
 	
-	async emitGreet(event: HelloEvent) {
+	async emitGreet (event: HelloEvent) {
 		await this.channel.publish(
 			this.exchange,
 			this.namespace,
@@ -43,7 +43,7 @@ export class AppsPublisher implements InterfacePublisher {
 		)
 	}
 	
-	async emitWelcome(event: WelcomeEvent) {
+	async emitWelcome (event: WelcomeEvent) {
 		await this.channel.publish(
 			this.exchange,
 			this.namespace,
@@ -51,7 +51,7 @@ export class AppsPublisher implements InterfacePublisher {
 		)
 	}
 	
-	async emitServices(event: ServicesPublishedEvent) {
+	async emitServices (event: ServicesPublishedEvent) {
 		await this.channel.publish(
 			this.exchange,
 			this.namespace,
@@ -59,7 +59,15 @@ export class AppsPublisher implements InterfacePublisher {
 		)
 	}
 	
-	async requestRpc(event, properties) {
+	async emitServiceEvent (event: ServiceEvent) {
+		await this.channel.publish(
+			this.exchange,
+			this.namespace,
+			Buffer.from(JSON.stringify(event.toJson()))
+		)
+	}
+	
+	async requestRpc (event, properties) {
 		this.channel.publish(
 			this.exchange,
 			properties.topic,
@@ -68,7 +76,7 @@ export class AppsPublisher implements InterfacePublisher {
 		)
 	}
 	
-	async respondRpc(event, properties) {
+	async respondRpc (event, properties) {
 		this.channel.sendToQueue(
 			properties.replyTo,
 			Buffer.from(JSON.stringify(event.toJson())),

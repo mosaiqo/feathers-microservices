@@ -10,7 +10,7 @@ import {
 } from './types'
 import { MicroServicesOptionsDefaults, MicroServiceType } from './constants'
 import { AppsRegistrar } from './regristrars'
-import { HelloEvent, ServicesPublishedEvent, WelcomeEvent } from './events'
+import { HelloEvent, ServicesPublishedEvent, WelcomeEvent, ServiceEvent } from './events'
 import { AppsPublisher } from './publishers'
 import { RpcReplier } from './repliers'
 import { Requester } from './requesters'
@@ -134,6 +134,8 @@ export class MicroService {
 		
 		await this.subscribeToNewApps()
 		await this.subscribeToNewService()
+		await this.subscribeToUnknownPublishedEvents()
+		await this.subscribeToNewServiceEvents()
 		
 		await this.publish()
 	}
@@ -179,6 +181,21 @@ export class MicroService {
 		await this.consumer.onWelcome(async (event: WelcomeEvent) => {
 			this.registrar.register(event)
 			await this.registerServices(event?.data?.services)
+		})
+	}
+	
+	async subscribeToNewServiceEvents () {
+		await this.consumer.onServiceEvent(async (event: ServiceEvent) => {
+			try {
+				this.app.service(event.service)
+					.emit(event.event, event._data)
+			} catch (e) {}
+		})
+	}
+	
+	async subscribeToUnknownPublishedEvents () {
+		await this.consumer.onUnknownPublished(async (event: any) => {
+			console.debug('Event is unknown', event)
 		})
 	}
 	
@@ -277,8 +294,15 @@ export class MicroService {
 			for (const event of serviceConfig.events) {
 				service.on(event, async (data) => {
 					// Todo: move this into publisher and create a specific event
-					const eventData = { path: serviceConfig.path, service: this.options.service, event: event, result: data }
-					await this.channel.publish(this.exchange, '', Buffer.from(JSON.stringify(eventData)))
+					const serviceEvent = ServiceEvent.create(
+						this.id,
+						this.key,
+						this.host,
+						`${ this.options.service }/${ serviceConfig.path }`,
+						event,
+						data
+					)
+					await this.publisher.emitServiceEvent(serviceEvent)
 				})
 			}
 		}

@@ -1,5 +1,12 @@
 import { Channel } from 'amqplib'
-import { HelloEvent, RPCRequestEvent, RPCResponseEvent, ServicesPublishedEvent, WelcomeEvent } from '../events'
+import {
+	HelloEvent,
+	RPCRequestEvent,
+	RPCResponseEvent,
+	ServiceEvent,
+	ServicesPublishedEvent,
+	WelcomeEvent
+} from '../events'
 import { InterfaceConsumer } from '../types'
 
 export class AppConsumer implements InterfaceConsumer {
@@ -14,7 +21,7 @@ export class AppConsumer implements InterfaceConsumer {
 	private events
 	private topics = []
 	
-	constructor(channel: Channel, exchange, queue, key, namespace, service, id) {
+	constructor (channel: Channel, exchange, queue, key, namespace, service, id) {
 		this.channel = channel
 		this.exchange = exchange
 		this.queue = queue
@@ -28,26 +35,28 @@ export class AppConsumer implements InterfaceConsumer {
 			WelcomeEvent: WelcomeEvent,
 			RPCResponseEvent: RPCResponseEvent,
 			RPCRequestEvent: RPCRequestEvent,
-			ServicesPublishedEvent: ServicesPublishedEvent
+			ServicesPublishedEvent: ServicesPublishedEvent,
+			ServiceEvent: ServiceEvent
 		}
 		this.generateTopics()
 	}
 	
-	static async create(channel: Channel, exchange, queue, key, namespace, service, id): Promise<InterfaceConsumer> {
+	static async create (channel: Channel, exchange, queue, key, namespace, service, id): Promise<InterfaceConsumer> {
 		const instance = new AppConsumer(channel, exchange, queue, key, namespace, service, id)
 		await instance.init()
 		return instance
 	}
 	
-	generateTopics() {
-		const namespace = this.namespace ? `${this.namespace}` : ''
-		const service = this.namespace ? `${namespace}.${this.service}`: `${this.service}`
-		const id = `${service}.${this.id}`
+	generateTopics () {
+		const namespace = this.namespace ? `${ this.namespace }` : ''
+		const service = this.namespace ? `${ namespace }.${ this.service }` : `${ this.service }`
+		const id = `${ service }.${ this.id }`
 		
 		this.topics.push(namespace)
 		this.topics.push(service)
 		this.topics.push(id)
 	}
+	
 	async init () {
 		// We ensure that the exchange exists
 		await this.channel.assertExchange(
@@ -73,11 +82,11 @@ export class AppConsumer implements InterfaceConsumer {
 		// await this.channel.bindQueue(this.queue, this.exchange, `${this.namespace}.${this.service}.${this.id}`)
 		//
 		await this.channel.consume(this.queue, async (data) => {
-			const eventData = JSON.parse(`${Buffer.from(data.content)}`)
+			const eventData = JSON.parse(`${ Buffer.from(data.content) }`)
 			const eventProperties = data.properties
 			// console.log(`Event received: ${eventData.name}`, eventData, data, this.key)
 			// Avoid consuming our own events
-			if(eventData.key !== this.key) {
+			if (eventData.key !== this.key) {
 				// console.log(`Received new ${eventData.name} from:`, eventData.key)
 				let event = eventData
 				if (this.events[eventData?.name]) {
@@ -96,32 +105,37 @@ export class AppConsumer implements InterfaceConsumer {
 		})
 	}
 	
-	async onHello(cb: (e: HelloEvent) => {}) {
+	async onHello (cb: (e: HelloEvent) => {}) {
 		if (!this.callbacks.HelloEvent) this.callbacks.HelloEvent = []
 		this.callbacks.HelloEvent.push(cb)
 	}
 	
-	async onWelcome(cb: (e: WelcomeEvent) => {}) {
+	async onWelcome (cb: (e: WelcomeEvent) => {}) {
 		if (!this.callbacks.WelcomeEvent) this.callbacks.WelcomeEvent = []
 		this.callbacks.WelcomeEvent.push(cb)
 	}
 	
-	async onServicesPublished(cb: (e: ServicesPublishedEvent) => {}) {
+	async onServicesPublished (cb: (e: ServicesPublishedEvent) => {}) {
 		if (!this.callbacks.ServicesPublishedEvent) this.callbacks.ServicesPublishedEvent = []
 		this.callbacks.ServicesPublishedEvent.push(cb)
 	}
 	
-	async onRpcRequest(cb: (e: RPCRequestEvent, p) => {}) {
+	async onServiceEvent (cb: (e: ServiceEvent) => {}) {
+		if (!this.callbacks.ServiceEvent) this.callbacks.ServiceEvent = []
+		this.callbacks.ServiceEvent.push(cb)
+	}
+	
+	async onRpcRequest (cb: (e: RPCRequestEvent, p) => {}) {
 		if (!this.callbacks.RPCRequestEvent) this.callbacks.RPCRequestEvent = []
 		this.callbacks.RPCRequestEvent.push(cb)
 	}
 	
-	async onRpcResponse(cb: (e: RPCResponseEvent, p) => {}) {
+	async onRpcResponse (cb: (e: RPCResponseEvent, p) => {}) {
 		if (!this.callbacks.RPCResponseEvent) this.callbacks.RPCResponseEvent = []
 		this.callbacks.RPCResponseEvent.push(cb)
 	}
 	
-	async onUnknownPublished(cb: (e) => {}) {
+	async onUnknownPublished (cb: (e) => {}) {
 		if (!this.callbacks.UnknownPublishedEvent) this.callbacks.UnknownPublishedEvent = []
 		this.callbacks.UnknownPublishedEvent.push(cb)
 	}
