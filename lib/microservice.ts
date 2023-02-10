@@ -268,7 +268,7 @@ export class MicroService {
 				//   events: serviceConfig.events
 				// }
 			)
-			this.app.emit('microservice:registered', { path: serviceConfig.path })
+			this.app.emit('microservice:registered', { path: registerPath, service: serviceConfig })
 		}
 		
 		this.app.emit('microservices:registered', { services })
