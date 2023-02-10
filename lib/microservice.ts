@@ -134,8 +134,8 @@ export class MicroService {
 		
 		await this.subscribeToNewApps()
 		await this.subscribeToNewService()
-		await this.subscribeToUnknownPublishedEvents()
 		await this.subscribeToNewServiceEvents()
+		await this.subscribeToUnknownPublishedEvents()
 		
 		await this.publish()
 	}
@@ -268,7 +268,10 @@ export class MicroService {
 				//   events: serviceConfig.events
 				// }
 			)
+			this.app.emit('microservice:registered', { path: serviceConfig.path })
 		}
+		
+		this.app.emit('microservices:registered', { services })
 	}
 	
 	/**
