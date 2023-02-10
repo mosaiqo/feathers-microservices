@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.40](https://github.com/mosaiqo/feathers-microservices/compare/0.0.39...0.0.40) (2023-02-10)
+
+
+### Features
+
+* add app event to notify on service changes ([c9945dd](https://github.com/mosaiqo/feathers-microservices/commit/c9945dde59a02e5545a163760e863a0d380fcc7a))
+
 ### [0.0.39](https://github.com/mosaiqo/feathers-microservices/compare/0.0.38...0.0.39) (2023-02-10)
 
 
